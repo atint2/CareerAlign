@@ -14,7 +14,7 @@ python -m venv .venv
 ```
 2. Install required packages:
 ```sh
-pip install Flask flask-cors
+pip install -r backend/requirements.txt
 ```
 3. Run the backend:
 ```sh
