@@ -18,14 +18,14 @@ pip install -r backend/requirements.txt
 ```
 3. Run the backend:
 ```sh
-python app.py
+python backend/app.py
 ```
 The backend serves GET /api/data on port 5000.
 
 ## Frontend (React + Vite)
 1. Install dependencies and start dev server:
 ```sh
-cd client
+cd frontend
 npm install
 ```
 2. Open the Vite dev server
