@@ -4,8 +4,9 @@ import './App.css';
 function App() {
   const [data, setData] = useState('');
 
+  // Testing connection to backend
   useEffect(() => {
-    fetch('/api/data') // Fetch from the proxied backend
+    fetch('/api/data') // Fetch from backend
       .then((res) => res.json())
       .then((data) => setData(data.message));
   }, []);
