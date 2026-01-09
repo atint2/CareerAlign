@@ -57,9 +57,11 @@ def main():
     average_token_count = df['description_token_count'].mean()
     min_token_count = df['description_token_count'].min()
     max_token_count = df['description_token_count'].max()
+    std_token_count = df['description_token_count'].std()
     print(f"\nAverage number of tokens in job descriptions: {average_token_count}")
     print(f"Minimum number of tokens in job descriptions: {min_token_count}")
     print(f"Maximum number of tokens in job descriptions: {max_token_count}")
+    print(f"Standard deviation of token counts: {std_token_count}")
 
 # Run exploratory data analysis
 if __name__ == "__main__":
