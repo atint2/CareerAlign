@@ -6,7 +6,7 @@ function App() {
 
   // Testing connection to backend
   useEffect(() => {
-    fetch('http://localhost:5000/api') // Fetch from backend
+    fetch('http://localhost:5000/api/ping') // Fetch from backend
       .then((res) => res.json())
       .then((data) => setData(data.message));
   }, []);
