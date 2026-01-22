@@ -52,6 +52,7 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+# Endpoint to create a new job posting
 @app.post('/api/postings/')
 async def create_job_posting(JobPosting: PostingBase, db: db_dependency):
     db_posting = models.JobPosting(job_id=JobPosting.job_id,
@@ -65,4 +66,15 @@ async def create_job_posting(JobPosting: PostingBase, db: db_dependency):
     db.add(db_posting)
     db.commit()
     db.refresh(db_posting)
+    return db_posting
     
+# Endpoint to create a new job embedding
+@app.post('/api/embeddings/')
+async def create_job_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
+    db_embedding = models.JobEmbedding(embedding=JobEmbedding.embedding,
+                                       model_version=JobEmbedding.model_version,
+                                       job_posting_id=JobEmbedding.job_posting_id)
+    db.add(db_embedding)
+    db.commit()
+    db.refresh(db_embedding)
+    return db_embedding
