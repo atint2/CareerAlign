@@ -5,23 +5,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 from preprocessor_sbert import SBERTPreprocessor
 from preprocessor_tfidf import TFIDFPreprocessor
 
-def test_tfidf_preprocessor():
+def test_tfidf_preprocessor(test_cases):
     """Test TF-IDF preprocessor with various inputs"""
     print("=" * 60)
     print("Testing TF-IDF Preprocessor")
     print("=" * 60)
     
     tfidf_prep = TFIDFPreprocessor()
-    
-    test_cases = [
-        "Senior C++ Developer with 5+ years experience",
-        "Looking for Python/Django expert. Email: hr@test.com",
-        "React.js and Node.js development",
-        "Ph.D. in Computer Science preferred",
-        "Full-stack engineer specializing in .NET framework",
-        "",  # Empty string
-        None,  # None value
-    ]
     
     for i, test in enumerate(test_cases, 1):
         try:
@@ -35,21 +25,11 @@ def test_tfidf_preprocessor():
             print(f"ERROR: {e}")
 
 
-def test_sbert_preprocessor():
+def test_sbert_preprocessor(test_cases):
     """Test SBERT preprocessor with various inputs"""
     print("\n" + "=" * 60)
     print("Testing SBERT Preprocessor")
     print("=" * 60)
-    
-    test_cases = [
-        "Senior C++ Developer with 5+ years experience",
-        "Looking for Python/Django expert. Email: hr@test.com",
-        "React.js and Node.js development",
-        "Visit https://company.com/careers for more info",
-        "Call us at +1-555-123-4567",
-        "",  # Empty string
-        None,  # None value
-    ]
     
     for i, test in enumerate(test_cases, 1):
         try:
@@ -90,10 +70,37 @@ def test_comparison():
 
 
 if __name__ == "__main__":
+    # Define some test cases
+    test_cases = [
+        "Senior C++ Developer with 5+ years experience",
+        "Looking for Python/Django expert. Email: hr@test.com",
+        "React.js and Node.js development",
+        "Visit https://company.com/careers for more info",
+        "Call us at +1-555-123-4567",
+        "Proficient with Microsoft Word and Excel, Requires P.H.D.",
+        "",  # Empty string
+        None,  # None value
+    ]
+
+    structural_tests = [
+    # Testing bullet points and weird encodings
+    "• Developed APIs\u2022Worked with Stakeholders\uf0b7Managed Teams",
+    # Testing multi-line spacing and tabs
+    "Python\n\n\n   Developer \t (Remote)",
+    # Testing heavy punctuation
+    "Experience with C++, C#, and .NET core!!!!",
+    ]
+        
     # Run all tests
-    test_tfidf_preprocessor()
-    test_sbert_preprocessor()
+    test_tfidf_preprocessor(test_cases)
+    test_sbert_preprocessor(test_cases)
     test_comparison()
+
+    print("\n" + "=" * 60)
+    print("Testing Structural Edge Cases")
+    print("=" * 60)
+    test_tfidf_preprocessor(structural_tests)
+    test_sbert_preprocessor(structural_tests)
     
     print("\n" + "=" * 60)
     print("All tests completed!")

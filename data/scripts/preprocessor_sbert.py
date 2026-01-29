@@ -17,7 +17,13 @@ class SBERTPreprocessor:
         
         # Remove phone numbers
         text = re.sub(r'\+?\d[\d\s\-\(\)]{8,}\d', "", text)
+
+        # Clean up leftover artifacts from URLs, emails, phone numbers
+        text = re.sub(r'\b(email|contact|visit|call|phone):\s*', '', text, flags=re.IGNORECASE)
         
+        # Remove pipe characters
+        text = text.replace('|', ' ')
+
         # Remove excessive whitespace (but preserve single spaces)
         text = " ".join(text.split())
         
