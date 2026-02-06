@@ -14,6 +14,19 @@ def setup_backend_imports():
 	backend_dir = root / "backend"
 	sys.path.insert(0, str(backend_dir))
 
+def clean_description(text):
+	"""Use preprocessors to clean job description text."""
+	sys.path.insert(0, str(Path(__file__).parent))
+	from preprocessor_sbert import SBERTPreprocessor
+	from preprocessor_tfidf import TFIDFPreprocessor
+
+	sbert_prep = SBERTPreprocessor()
+	sbert_cleaned = sbert_prep.clean_text_sbert(text)
+	tfidf_prep = TFIDFPreprocessor()
+	tfidf_cleaned = tfidf_prep.clean_text_tfidf(text)
+
+	return sbert_cleaned, tfidf_cleaned
+
 def main():
 	dataset_filepath = Path(__file__).resolve().parents[1] / "processed" / "cleaned_job_postings.csv"
 
@@ -53,6 +66,10 @@ def main():
 			jid = str(row["job_id"]).strip()
 			if jid in existing:
 				continue
+			# Clean description text
+			desc_sbert, desc_tfidf = clean_description(row.get("description", ""))
+			row["desc_sbert"] = desc_sbert
+			row["desc_tfidf"] = desc_tfidf
 			jp = models.JobPosting(
 				job_id=jid,
 				title=row.get("title"),
