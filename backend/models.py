@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, PrimaryKeyConstraint
 from pgvector.sqlalchemy import Vector
 from database import Base
 
@@ -23,3 +23,17 @@ class JobEmbedding(Base):
     embedding = Column(Vector(384), nullable=False)
     model_version = Column(String, nullable=False)
     job_posting_id = Column(Integer, ForeignKey("job_postings.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    __table_args__ = (
+        # Define the composite primary key constraint
+        PrimaryKeyConstraint('job_posting_id', 'model_version', name='embedding_pk'),
+    )
+
+class ReducedEmbedding(Base):
+    __tablename__ = "reduced_job_embeddings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    reduced_embedding = Column(Vector(50), nullable=False)
+    model_version = Column(String, nullable=False)
+    job_embedding_id = Column(Integer, ForeignKey("job_embeddings.id", ondelete="CASCADE"), nullable=False, index=True)
+    reduction_method = Column(String, nullable=False)

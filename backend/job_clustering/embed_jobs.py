@@ -31,9 +31,7 @@ async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_
     print(f"Saved {len(job_ids)} job embeddings to the database.")
 
 async def main():
-
     setup_backend_imports()
-
     # Import backend modules after adjusting sys.path
     try:
         import database
@@ -44,7 +42,7 @@ async def main():
     SessionLocal = database.SessionLocal
     db_session = SessionLocal()
     try:
-        # Fetch all job postings without embeddings
+        # Fetch all job postings with SBERT descriptions
         job_postings = db_session.query(models.JobPosting).filter(
             models.JobPosting.desc_sbert.isnot(None)
         ).all()

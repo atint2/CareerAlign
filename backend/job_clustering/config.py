@@ -1,5 +1,5 @@
 # SBERT Model for generating job embeddings (clustering)
-EMBEDDING_MODEL = "all-minilm-l6-v2"    
+EMBEDDING_MODEL = "all-minilm-l6-v2"   
 
 # For UMAP dimensionality reduction
 UMAP_PARAMS = {
@@ -7,7 +7,15 @@ UMAP_PARAMS = {
     "n_components": 50,
     "min_dist": 0.1,
     "metric": "cosine",
-    "random_state": 42
+    "random_state": 42,
+    "verbose": True, 
+    "tqdm_kwds": {'colour': 'green'}
+}
+
+# For PCA dimensionality reduction
+PCA_PARAMS = {
+    "n_components": 50,
+    "random_state": 42,
 }
 
 # For HDBSCAN clustering
