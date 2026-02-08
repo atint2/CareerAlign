@@ -42,6 +42,7 @@ class PostingBase(BaseModel):
     formatted_work_type: str
     company: Optional[str] = None
     formatted_experience_level: Optional[str] = None
+    cluster_id: Optional[int] = None
 
 def get_db():
     db = SessionLocal()
@@ -51,6 +52,12 @@ def get_db():
         db.close()
 
 db_dependency = Annotated[Session, Depends(get_db)]
+
+# Endpoint to retrieve all job postings
+@app.get('/api/postings/', response_model=List[PostingBase])
+async def get_job_postings(db: db_dependency):
+    postings = db.query(models.JobPosting).all()
+    return postings
 
 # Endpoint to create a new job posting
 @app.post('/api/postings/')

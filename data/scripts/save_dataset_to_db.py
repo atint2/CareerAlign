@@ -79,6 +79,7 @@ def main():
 				formatted_work_type=row.get("formatted_work_type"),
 				company=row.get("company_name"),
 				formatted_experience_level=row.get("formatted_experience_level"),
+				cluster_id=row.get("cluster_id")
 			)
 			to_insert.append(jp)
 

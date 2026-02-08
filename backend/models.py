@@ -14,6 +14,7 @@ class JobPosting(Base):
     formatted_work_type = Column(String, nullable=False)
     company = Column(String, nullable=True)
     formatted_experience_level = Column(String, nullable=True)
+    cluster_id = Column(Integer, nullable=True)
 
 class JobEmbedding(Base):
     __tablename__ = "job_embeddings"
