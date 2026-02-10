@@ -15,6 +15,7 @@ UMAP_PARAMS = {
 # For PCA dimensionality reduction
 PCA_PARAMS = {
     "n_components": 50,
+    'svd_solver': 'randomized',
     "random_state": 42,
 }
 

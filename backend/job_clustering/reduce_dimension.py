@@ -2,12 +2,10 @@ import umap
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import numpy as np
-from config import EMBEDDING_MODEL
 from config import UMAP_PARAMS
 from config import PCA_PARAMS 
 from pathlib import Path
 import sys
-import asyncio
 
 def setup_backend_imports():
 	# Ensure backend/ is on sys.path so its modules import as top-level modules
@@ -64,28 +62,21 @@ def main():
         job_embeddings = db_session.query(models.JobEmbedding).all()
         
         job_embedding_ids = [je.id for je in job_embeddings]
-        job_embeddings_embeddings = [jp.embedding for jp in job_embeddings]
+        job_embeddings_embeddings = [je.embedding for je in job_embeddings]
 
         print(f"Reducing {len(job_embeddings_embeddings)} job embeddings using UMAP...")
-        embeddings = reduce_dimensions_umap(job_embeddings_embeddings)
+        umap_embeddings = reduce_dimensions_umap(job_embeddings_embeddings)
 
-        print("Saving UMAP-reduced embeddings to database...")
-        save_reduced_job_embeddings(job_embedding_ids, embeddings, EMBEDDING_MODEL, "UMAP", db_session)
-    except Exception as e:
-        print("Exception reducing job embeddings with UMAP and saving to database:", e)
-    finally:
-        db_session.close()
-
-    # Now do the same for PCA
-    db_session = SessionLocal()
-    try:
         print(f"Reducing {len(job_embeddings_embeddings)} job embeddings using PCA...")
-        embeddings = reduce_dimensions_pca(job_embeddings_embeddings)
+        pca_embeddings = reduce_dimensions_pca(job_embeddings_embeddings)
 
-        print("Saving PCA-reduced embeddings to database...")
-        save_reduced_job_embeddings(job_embedding_ids, embeddings, EMBEDDING_MODEL, "PCA", db_session)
+        # print("Saving UMAP-reduced embeddings to database...")
+        # save_reduced_job_embeddings(job_embedding_ids, umap_embeddings, EMBEDDING_MODEL, "UMAP", db_session)
+        # print("Saving PCA-reduced embeddings to database...")
+        # save_reduced_job_embeddings(job_embedding_ids, pca_embeddings, EMBEDDING_MODEL, "PCA", db_session)
+
     except Exception as e:
-        print("Exception reducing job embeddings with PCA and saving to database:", e)
+        print("Exception reducing job embeddings and saving to database:", e)
     finally:
         db_session.close()
 
