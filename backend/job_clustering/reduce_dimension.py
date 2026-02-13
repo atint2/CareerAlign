@@ -2,6 +2,7 @@ import umap
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+from config import EMBEDDING_MODEL
 from config import UMAP_PARAMS
 from config import PCA_PARAMS 
 from pathlib import Path
@@ -29,11 +30,20 @@ def reduce_dimensions_pca(embeddings):
 def save_reduced_job_embeddings(embedding_ids: list[int], reduced_embeddings: np.ndarray, model_version: str, reduction_method: str, db_session):
     """Save reduced embeddings directly to database"""
     import models
+
+    # Check that table exists before trying to save
+    if not db_session.query(models.ReducedEmbedding).first():
+        print("ReducedEmbedding table does not exist. Cannot save reduced embeddings.")
+        return
+    # Check that table is empty before trying to save
+    if db_session.query(models.ReducedEmbedding).first():
+        print("ReducedEmbedding table is not empty. Skipping save to avoid duplicates.")
+        return
     
     for job_embedding_id, reduced_embedding in zip(embedding_ids, reduced_embeddings):
-        # Ensure reduced_embedding matches Vector(50) size
-        if len(reduced_embedding) != 50:
-            raise ValueError(f"Expected 50 dimensions, got {len(reduced_embedding)}")
+        # Ensure reduced_embedding matches Vector(15) size
+        if len(reduced_embedding) != 15:
+            raise ValueError(f"Expected 15 dimensions, got {len(reduced_embedding)}")
         
         db_reduced_embedding = models.ReducedEmbedding(
             reduced_embedding=reduced_embedding.tolist(),
@@ -70,8 +80,8 @@ def main():
         print(f"Reducing {len(job_embeddings_embeddings)} job embeddings using PCA...")
         pca_embeddings = reduce_dimensions_pca(job_embeddings_embeddings)
 
-        # print("Saving UMAP-reduced embeddings to database...")
-        # save_reduced_job_embeddings(job_embedding_ids, umap_embeddings, EMBEDDING_MODEL, "UMAP", db_session)
+        print("Saving UMAP-reduced embeddings to database...")
+        save_reduced_job_embeddings(job_embedding_ids, umap_embeddings, EMBEDDING_MODEL, "UMAP", db_session)
         # print("Saving PCA-reduced embeddings to database...")
         # save_reduced_job_embeddings(job_embedding_ids, pca_embeddings, EMBEDDING_MODEL, "PCA", db_session)
 

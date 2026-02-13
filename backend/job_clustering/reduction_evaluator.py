@@ -47,44 +47,33 @@ def main():
         job_embedding_ids = [je.id for je in job_embeddings]
         job_embeddings_embeddings = [je.embedding for je in job_embeddings]
 
-        # Retrieve reduced embeddings for UMAP and PCA, ordered by job_embedding_id
+        # Retrieve reduced embeddings for UMAP, ordered by job_embedding_id
         umap_reduced = db_session.query(models.ReducedEmbedding)\
             .filter(models.ReducedEmbedding.reduction_method == "UMAP")\
             .order_by(models.ReducedEmbedding.job_embedding_id)\
             .all()
-        
-        pca_reduced = db_session.query(models.ReducedEmbedding)\
-            .filter(models.ReducedEmbedding.reduction_method == "PCA")\
-            .order_by(models.ReducedEmbedding.job_embedding_id)\
-            .all()
-
         print(f"Retrieved {len(umap_reduced)} UMAP reduced embeddings")
-        print(f"Retrieved {len(pca_reduced)} PCA reduced embeddings")
+        
 
         # Create dictionaries for alignment
         umap_dict = {ur.job_embedding_id: ur.reduced_embedding for ur in umap_reduced}
-        pca_dict = {pr.job_embedding_id: pr.reduced_embedding for pr in pca_reduced}
 
         # Align reduced embeddings with original embeddings
         umap_aligned = []
-        pca_aligned = []
         original_aligned = []
         
         for je_id, orig_emb in zip(job_embedding_ids, job_embeddings_embeddings):
-            if je_id in umap_dict and je_id in pca_dict:
+            if je_id in umap_dict:
                 original_aligned.append(orig_emb)
                 umap_aligned.append(umap_dict[je_id])
-                pca_aligned.append(pca_dict[je_id])
         
         original_aligned = np.array(original_aligned)
         umap_aligned = np.array(umap_aligned)
-        pca_aligned = np.array(pca_aligned)
         
         print(f"\nAligned {len(original_aligned)} embeddings for evaluation")
 
         # Evaluate reduction quality of each method
         evaluate_reduction_quality(original_aligned, umap_aligned, "UMAP", sample_size=10000)
-        evaluate_reduction_quality(original_aligned, pca_aligned, "PCA", sample_size=10000)
     except Exception as e:
         print("Exception evaluating reduction quality:", e)
     finally:

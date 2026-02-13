@@ -33,7 +33,7 @@ class ReducedEmbedding(Base):
     __tablename__ = "reduced_job_embeddings"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    reduced_embedding = Column(Vector(50), nullable=False)
+    reduced_embedding = Column(Vector(15), nullable=False)
     model_version = Column(String, nullable=False)
     job_embedding_id = Column(Integer, ForeignKey("job_embeddings.id", ondelete="CASCADE"), nullable=False, index=True)
     reduction_method = Column(String, nullable=False)
