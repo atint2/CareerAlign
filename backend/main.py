@@ -33,6 +33,12 @@ class EmbeddingBase(BaseModel):
     model_version: str
     job_posting_id: int
 
+class ReducedEmbeddingBase(BaseModel):
+    reduced_embedding: List[float]
+    model_version: str
+    job_embedding_id: int
+    reduction_method: str
+
 class PostingBase(BaseModel):
     job_id: str
     title: str
@@ -42,6 +48,7 @@ class PostingBase(BaseModel):
     formatted_work_type: str
     company: Optional[str] = None
     formatted_experience_level: Optional[str] = None
+    cluster_id: Optional[int] = None
 
 def get_db():
     db = SessionLocal()
@@ -51,6 +58,12 @@ def get_db():
         db.close()
 
 db_dependency = Annotated[Session, Depends(get_db)]
+
+# Endpoint to retrieve all job postings
+@app.get('/api/postings/', response_model=List[PostingBase])
+async def get_job_postings(db: db_dependency):
+    postings = db.query(models.JobPosting).all()
+    return postings
 
 # Endpoint to create a new job posting
 @app.post('/api/postings/')
@@ -68,6 +81,12 @@ async def create_job_posting(JobPosting: PostingBase, db: db_dependency):
     db.refresh(db_posting)
     return db_posting
     
+# Endpoint to retrieve all job embeddings
+@app.get('/api/embeddings/', response_model=List[EmbeddingBase])
+async def get_job_embeddings(db: db_dependency):
+    embeddings = db.query(models.JobEmbedding).all()
+    return embeddings
+
 # Endpoint to create a new job embedding
 @app.post('/api/embeddings/')
 async def create_job_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
@@ -78,3 +97,15 @@ async def create_job_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
     db.commit()
     db.refresh(db_embedding)
     return db_embedding
+
+# Endpoint to create a new reduced job embedding
+@app.post('/api/reduced-embeddings/')
+async def create_reduced_embedding(ReducedEmbedding: ReducedEmbeddingBase, db: db_dependency):
+    db_reduced_embedding = models.ReducedEmbedding(reduced_embedding=ReducedEmbedding.reduced_embedding,
+                                                   model_version=ReducedEmbedding.model_version,
+                                                   job_embedding_id=ReducedEmbedding.job_embedding_id,
+                                                   reduction_method=ReducedEmbedding.reduction_method)
+    db.add(db_reduced_embedding)
+    db.commit()
+    db.refresh(db_reduced_embedding)
+    return db_reduced_embedding
