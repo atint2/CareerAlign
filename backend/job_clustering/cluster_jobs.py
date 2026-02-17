@@ -145,7 +145,7 @@ def main():
         cluster_labels = merge_similar_clusters(
             centroids,
             cluster_labels,
-            threshold=0.998,
+            threshold=0.999,
         )
         num_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
         print("Number of clusters after merging similar ones:", num_clusters)
