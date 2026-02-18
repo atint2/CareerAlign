@@ -19,7 +19,7 @@ class JobPosting(Base):
 class JobEmbedding(Base):
     __tablename__ = "job_embeddings"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    id = Column(Integer, autoincrement=True, index=True)
     embedding = Column(Vector(384), nullable=False)
     model_version = Column(String, nullable=False)
     job_posting_id = Column(Integer, ForeignKey("job_postings.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -37,3 +37,11 @@ class ReducedEmbedding(Base):
     model_version = Column(String, nullable=False)
     job_embedding_id = Column(Integer, ForeignKey("job_embeddings.id", ondelete="CASCADE"), nullable=False, index=True)
     reduction_method = Column(String, nullable=False)
+
+class Cluster(Base):
+    __tablename__ = "clusters"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    cluster_id = Column(Integer, nullable=False, unique=True)
+    cluster_desc = Column(String, nullable=True)
+    num_postings = Column(Integer, nullable=False)
