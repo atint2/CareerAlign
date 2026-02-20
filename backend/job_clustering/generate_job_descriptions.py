@@ -89,6 +89,8 @@ def create_llm_prompt(keywords, sample_titles, sample_descriptions):
     {desc_text}
     """
 
+    print("LLM Prompt:\n", prompt.strip())
+
     return prompt.strip()
 
 def generate_job_description(keywords, sample_titles, sample_descriptions):
@@ -101,7 +103,7 @@ def generate_job_description(keywords, sample_titles, sample_descriptions):
     try:
         prompt = create_llm_prompt(keywords, sample_titles, sample_descriptions)
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             contents=prompt,
         )
         return response.text.strip()
