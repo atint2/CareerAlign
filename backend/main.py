@@ -28,6 +28,17 @@ app.add_middleware(
 async def ping():
     return {'message': 'Hello from Python backend!'}
 
+class PostingBase(BaseModel):
+    job_id: str
+    title: str
+    desc_raw: str
+    desc_sbert: Optional[str] = None
+    desc_tfidf: Optional[str] = None 
+    formatted_work_type: str
+    company: Optional[str] = None
+    formatted_experience_level: Optional[str] = None
+    cluster_id: Optional[int] = None
+
 class EmbeddingBase(BaseModel):
     embedding: List[float]
     model_version: str
@@ -39,16 +50,10 @@ class ReducedEmbeddingBase(BaseModel):
     job_embedding_id: int
     reduction_method: str
 
-class PostingBase(BaseModel):
-    job_id: str
-    title: str
-    desc_raw: str
-    desc_sbert: Optional[str] = None
-    desc_tfidf: Optional[str] = None 
-    formatted_work_type: str
-    company: Optional[str] = None
-    formatted_experience_level: Optional[str] = None
-    cluster_id: Optional[int] = None
+class ClusterBase(BaseModel):
+    cluster_id: int
+    cluster_desc: Optional[str] = None
+    num_postings: int
 
 def get_db():
     db = SessionLocal()

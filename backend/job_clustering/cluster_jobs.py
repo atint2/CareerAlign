@@ -1,5 +1,6 @@
 import hdbscan 
 from config import HDBSCAN_PARAMS 
+from collections import Counter
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np 
@@ -145,7 +146,7 @@ def main():
         cluster_labels = merge_similar_clusters(
             centroids,
             cluster_labels,
-            threshold=0.998,
+            threshold=0.999,
         )
         num_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
         print("Number of clusters after merging similar ones:", num_clusters)
@@ -158,6 +159,32 @@ def main():
                 {"cluster_id": None if label == -1 else int(label)}, 
                 synchronize_session=False, 
             ) 
+
+        # Update DB with cluster information
+        # Count postings by cluster
+        cluster_counts = Counter(
+            label for label in cluster_labels if label != -1
+        )
+
+        for cid, count in cluster_counts.items():
+            existing = (
+                db_session.query(models.Cluster)
+                .filter(models.Cluster.cluster_id == int(cid))
+                .one_or_none()
+            )
+
+            if existing:
+                # Update count (and keep description if already generated)
+                existing.num_postings = count
+            else:
+                # Create new cluster row
+                new_cluster = models.Cluster(
+                    cluster_id=int(cid),
+                    cluster_desc=None,   # fill later with LLM
+                    num_postings=count,
+                )
+                db_session.add(new_cluster)
+        
         db_session.commit() 
 
     except Exception as e: 

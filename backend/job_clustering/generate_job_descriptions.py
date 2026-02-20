@@ -1,9 +1,19 @@
+from google import genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction import text
 from sklearn.metrics.pairwise import cosine_similarity
+from collections import defaultdict
 import numpy as np 
 from pathlib import Path 
 import sys 
+import time
+
+# Load API key
+from dotenv import load_dotenv
+import os
+load_dotenv()
+API_KEY = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=API_KEY)
 
 def setup_backend_imports(): 
     # Ensure backend/ is on sys.path so its modules import as top-level modules 
@@ -44,11 +54,62 @@ def compute_cluster_keywords(texts, labels, top_k=20):
 
     return cluster_keywords
 
-def centroid_label(embeddings, titles):
-    # Label clusters by finding job title which is closest to centroid
-    centroid = embeddings.mean(axis=0, keepdims=True)
-    sims = cosine_similarity(embeddings, centroid).ravel()
-    return titles[np.argmax(sims)]
+def create_llm_prompt(keywords, sample_titles, sample_descriptions):
+    """
+    Create the prompt that asks LLM to generate a general job description
+    Use extracted keywords, sample titles, and sample descriptions
+    """
+    # Format keywords as a readable list
+    keywords_text = ", ".join(keywords) if keywords else "Not specified"
+    
+    titles_text = "\n".join(f"- {t}" for t in sample_titles[:5]) or "None provided"
+    
+    desc_text = "\n\n".join(sample_descriptions[:3]) or "None provided"
+
+
+
+    prompt = f"""You are generating a concise, generalized job description for a group of similar job postings.
+    Use the provided keywords, example job titles, and descriptions to infer:
+    - the common role
+    - primary responsibilities
+    - required skills
+
+    Write:
+    - 1 short role title
+    - 3–5 sentence professional summary
+    - Avoid mentioning clusters, data, or analysis.
+
+    KEYWORDS:
+    {keywords_text}
+
+    SAMPLE JOB TITLES:
+    {titles_text}
+
+    SAMPLE DESCRIPTIONS:
+    {desc_text}
+    """
+
+    print("LLM Prompt:\n", prompt.strip())
+
+    return prompt.strip()
+
+def generate_job_description(keywords, sample_titles, sample_descriptions):
+    """
+    Call LLM to generate a generalized job description.
+    """
+    if not sample_titles and not sample_descriptions:
+        return "Insufficient data to generate description."
+
+    try:
+        prompt = create_llm_prompt(keywords, sample_titles, sample_descriptions)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+        )
+        return response.text.strip()
+    except Exception as e:
+        print("LLM generation failed:", e)
+        return "Description unavailable."
 
 def main():
     setup_backend_imports()
@@ -67,6 +128,7 @@ def main():
         # Retrieve descriptions + cluster IDs
         rows = (
             db_session.query(
+                models.JobPosting.title,
                 models.JobPosting.desc_sbert,
                 models.JobPosting.cluster_id,
             )
@@ -83,13 +145,45 @@ def main():
 
         keywords = compute_cluster_keywords(texts, labels, top_k=20)
 
-        # Print first five clusters
-        for cid in sorted(keywords.keys())[:5]:
-            print(f"\nCluster {cid}")
-            print("Top keywords:", ", ".join(keywords[cid]))
+        cluster_map = defaultdict(list)
 
+        for r in rows:
+            cluster_map[r.cluster_id].append(r)
+
+        # Generate descriptions for clusters
+        for cid in sorted(keywords.keys()):
+            cluster_rows = cluster_map[cid]
+
+            sample_titles = [r.title for r in cluster_rows if r.title]
+            sample_descs = [r.desc_sbert for r in cluster_rows if r.desc_sbert]
+
+            existing = (
+                db_session.query(models.Cluster)
+                .filter(models.Cluster.cluster_id == int(cid))
+                .one_or_none()
+            )
+            if existing:
+                if existing.cluster_desc:
+                    pass
+                else:
+                    # Generate description for cluster
+                    description = generate_job_description(
+                        keywords[cid],
+                        sample_titles,
+                        sample_descs,
+                    )
+                    if description != "Description unavailable.":
+                        # Save description to database
+                        existing.cluster_desc = description
+                        db_session.commit()
+                    # Sleep before next iteration
+                    time.sleep(30)
+
+            # print(f"\nCluster {cid}")
+            # print("Top keywords:", ", ".join(keywords[cid]))
+            # print("Generated description:\n", description)
     except Exception as e:
-        print("Exception during keyword computation:", e)
+        print("Exception:", e)
     finally:
         db_session.close()
 
