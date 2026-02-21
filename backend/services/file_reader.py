@@ -1,10 +1,17 @@
 from pathlib import Path
+import sys
 import os
 import pdfplumber
 from docx import Document
 
 UNPROCESSED_DIR = Path(__file__).parent / "unprocessed_resumes"
 PROCESSED_DIR = Path(__file__).parent / "processed_resumes"
+
+def setup_backend_imports(): 
+    # Ensure backend/ is on sys.path so its modules import as top-level modules 
+    root = Path(__file__).resolve().parents[2] 
+    backend_dir = root / "backend" 
+    sys.path.insert(0, str(backend_dir)) 
 
 def read_pdf(file_path):
     text_parts = []
@@ -43,7 +50,37 @@ def save_text(text, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(text)
 
+def save_resume_to_db(filename, content):
+    try:
+        import database
+        import models
+    except Exception as e:
+        print("Exception importing backend modules:", e)
+        return
+
+    SessionLocal = database.SessionLocal
+    db_session = SessionLocal()
+
+    try:
+        resume = db_session.query(models.Resume).filter_by(filename=filename).first()
+        if resume:
+            print(f"Resume with filename {filename} already exists in database. Skipping.")
+            return
+
+        resume = models.Resume(
+            filename=filename,
+            content=content,
+        )
+        db_session.add(resume)
+        db_session.commit()
+        print(f"Saved {filename} to database.")
+    except Exception as e:
+        print("Error saving resume to database:", e)
+    finally:
+        db_session.close()
+
 def main():
+    setup_backend_imports()
     print("Starting file processing...")
     for filename in os.listdir(UNPROCESSED_DIR):
         file_path = UNPROCESSED_DIR/filename
@@ -60,6 +97,8 @@ def main():
         output_file = PROCESSED_DIR/(Path(filename).stem + ".txt")
         save_text(text, output_file)
         print(f"Processed: {filename}")
+
+        save_resume_to_db(filename, text)
 
 if __name__ == "__main__":
     main()
