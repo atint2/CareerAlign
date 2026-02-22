@@ -45,3 +45,12 @@ class Cluster(Base):
     cluster_id = Column(Integer, nullable=False, unique=True)
     cluster_desc = Column(String, nullable=True)
     num_postings = Column(Integer, nullable=False)
+
+class Resume(Base):
+    __tablename__ = "resumes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    filename = Column(String, nullable=False, unique=True)
+    content = Column(String, nullable=False)
+    content_sbert = Column(String, nullable=True)
+    content_tfidf = Column(String, nullable=True)

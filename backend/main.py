@@ -55,6 +55,12 @@ class ClusterBase(BaseModel):
     cluster_desc: Optional[str] = None
     num_postings: int
 
+class ResumeBase(BaseModel):
+    filename: str
+    content: str
+    content_sbert: Optional[str] = None
+    content_tfidf: Optional[str] = None
+
 def get_db():
     db = SessionLocal()
     try:

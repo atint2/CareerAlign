@@ -1,0 +1,24 @@
+Alison Tintera
+Brockport, NY | (585) 434-8081 | amtintera@gmail.com | LinkedIn | Github
+OBJECTIVE
+Honors Computer Science student with full-stack development experience seeking a software engineering position to contribute technical expertise and agile development skills.
+EDUCATION
+State University of New York Brockport, Brockport NY	         	Expected May 2026
+Honors Bachelor of Science in Computer Science | Software Development | GPA: 3.99
+SKILLS
+Technical: HTML, CSS, Javascript, Typescript, Java, Python, SQL, R, MIPS | React.js, Node.js, Express.js | Git/GitHub/GitLab, VSCode, Intellij, RStudio, Linux
+Development: Agile project management, unit & manual testing, UML diagrams, version control
+Professional: Team collaboration, leadership, problem-solving
+EMPLOYMENT
+SUNY Brockport:                                         September 2023 – December 2024
+Student Grader Part Time:
+Graded homework assignments for Calculus I, Calculus II, and Discrete Math II, troubleshooting errors and giving written feedback to students on problems.
+Monroe County Water Authority:		May 2025 – August 2025
+Computer Programmer Co-op:
+Delivered a secure, full-stack internal portal (React.js, Express, SQLite3) with Kerberos-based Active Directory authentication, hosted on Linux/Nginx with SSL and PM2 management.
+Built a GitLab CI/CD pipeline with isolated dev, staging, and production environments using scoped environment variables.
+Implemented advanced security controls, documented RESTful APIs with Swagger OpenAPI, and mirrored production locally via Docker for consistent testing.
+Ensured quality through user acceptance, manual, and unit testing.
+HONORS SOCIETIES AND AWARDS:
+SUNY Brockport Honors College:  Pursuing Honors Degree
+President’s List Spring 2023 – Spring 2025
