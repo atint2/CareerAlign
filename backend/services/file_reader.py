@@ -50,35 +50,6 @@ def save_text(text, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(text)
 
-def save_resume_to_db(filename, content):
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-
-    SessionLocal = database.SessionLocal
-    db_session = SessionLocal()
-
-    try:
-        resume = db_session.query(models.Resume).filter_by(filename=filename).first()
-        if resume:
-            print(f"Resume with filename {filename} already exists in database. Skipping.")
-            return
-
-        resume = models.Resume(
-            filename=filename,
-            content=content,
-        )
-        db_session.add(resume)
-        db_session.commit()
-        print(f"Saved {filename} to database.")
-    except Exception as e:
-        print("Error saving resume to database:", e)
-    finally:
-        db_session.close()
-
 def main():
     setup_backend_imports()
     print("Starting file processing...")
@@ -97,8 +68,6 @@ def main():
         output_file = PROCESSED_DIR/(Path(filename).stem + ".txt")
         save_text(text, output_file)
         print(f"Processed: {filename}")
-
-        save_resume_to_db(filename, text)
 
 if __name__ == "__main__":
     main()
