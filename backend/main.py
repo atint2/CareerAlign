@@ -55,9 +55,17 @@ class ClusterBase(BaseModel):
     cluster_desc: Optional[str] = None
     num_postings: int
 
+class ClusterCopyBase(BaseModel):
+    cluster_id: int
+    title: Optional[str] = None
+    general_job_desc_raw: Optional[str] = None
+    general_job_desc_sbert: Optional[str] = None
+    general_job_desc_tfidf: Optional[str] = None
+    num_postings: int
+
 class ResumeBase(BaseModel):
-    filename: str
-    content: str
+    resume_id: str
+    content_raw: str
     content_sbert: Optional[str] = None
     content_tfidf: Optional[str] = None
 
