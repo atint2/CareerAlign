@@ -43,7 +43,10 @@ class Cluster(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     cluster_id = Column(Integer, nullable=False, unique=True)
-    cluster_desc = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    general_job_desc_raw = Column(String, nullable=True)
+    general_job_desc_sbert = Column(String, nullable=True)
+    general_job_desc_tfidf = Column(String, nullable=True)
     num_postings = Column(Integer, nullable=False)
 
 class ClusterCopy(Base):

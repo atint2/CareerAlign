@@ -52,7 +52,10 @@ class ReducedEmbeddingBase(BaseModel):
 
 class ClusterBase(BaseModel):
     cluster_id: int
-    cluster_desc: Optional[str] = None
+    title: Optional[str] = None
+    general_job_desc_raw: Optional[str] = None
+    general_job_desc_sbert: Optional[str] = None
+    general_job_desc_tfidf: Optional[str] = None
     num_postings: int
 
 class ClusterCopyBase(BaseModel):
