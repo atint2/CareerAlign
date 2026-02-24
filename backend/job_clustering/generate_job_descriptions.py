@@ -1,7 +1,6 @@
 from google import genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction import text
-from sklearn.metrics.pairwise import cosine_similarity
 from collections import defaultdict
 import numpy as np 
 from pathlib import Path 
