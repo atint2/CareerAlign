@@ -8,10 +8,10 @@ import os
 
 PROCESSED_DIR = Path(__file__).parent / "processed_resumes"
 
-def setup_backend_imports():
+def setup_backend_imports(path="backend"):
 	# Ensure backend/ is on sys.path so its modules import as top-level modules
 	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / "backend"
+	backend_dir = root / path
 	sys.path.insert(0, str(backend_dir))
 
 def load_vectorizer(path="tfidf_vectorizer.pkl"):
@@ -74,6 +74,11 @@ def main():
             with open(file_path, "r", encoding="utf-8") as f:
                 resume_text = f.read()
             print(f"\nFinding matches for resume: {filename}")
+
+            setup_backend_imports("data/scripts")
+            from preprocessor_tfidf import TFIDFPreprocessor
+            tfidf_prep = TFIDFPreprocessor()
+            resume_text = tfidf_prep.clean_text_tfidf(resume_text)
 
             top_jobs = find_top_job_matches(resume_text, embedding_service, db_session, models, top_n=3)
             for job in top_jobs:

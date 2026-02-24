@@ -22,11 +22,11 @@ def fit_and_save_vectorizer():
     db_session = SessionLocal()
     try:
         # Fetch all job descriptions and resumes
-        job_descs = db_session.query(models.Cluster).filter(models.Cluster.general_job_desc_raw != None).all()
+        job_descs = db_session.query(models.Cluster).filter(models.Cluster.general_job_desc_tfidf != None).all()
         resume_texts = db_session.query(models.Resume).filter(models.Resume.content_raw != None).all()
 
         # Combine texts
-        combined_texts = [jd.general_job_desc_raw for jd in job_descs] + [r.content_raw for r in resume_texts]
+        combined_texts = [jd.general_job_desc_tfidf for jd in job_descs] + [r.content_raw for r in resume_texts]
 
         # Fit TF-IDF vectorizer
         embedding_service = TFIDFEmbeddingService()

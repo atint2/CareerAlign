@@ -22,9 +22,7 @@ def main():
     
     try:
         # Retrieve all resumes that are missing content_sbert or content_tfidf
-        resumes = db_session.query(models.Resume).filter(
-            (models.Resume.content_sbert == None) | (models.Resume.content_tfidf == None)
-        ).all()
+        resumes = db_session.query(models.Resume).all()
 
         if not resumes:
             print("No resumes found that require pre-processing.")
@@ -44,10 +42,8 @@ def main():
         tfidf_prep = TFIDFPreprocessor()
 
         for resume in resumes:
-            if resume.content_sbert is None:
-                resume.content_sbert = sbert_prep.clean_text_sbert(resume.content)
-            if resume.content_tfidf is None:
-                resume.content_tfidf = tfidf_prep.clean_text_tfidf(resume.content)
+            resume.content_sbert = sbert_prep.clean_text_sbert(resume.content_raw)
+            resume.content_tfidf = tfidf_prep.clean_text_tfidf(resume.content_raw)
 
         db_session.commit()
     except Exception as e:

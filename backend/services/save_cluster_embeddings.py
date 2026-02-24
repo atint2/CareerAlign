@@ -38,7 +38,7 @@ def main():
     try:
         # Fetch all job descriptions
         job_descs = db_session.query(models.Cluster).filter(
-            models.Cluster.general_job_desc_raw != None
+            models.Cluster.general_job_desc_tfidf != None
         ).all()
     except Exception as e:
         print("Exception during database retrieval:", e)
@@ -61,7 +61,7 @@ def main():
             if cluster.id in existing_cluster_ids:
                 continue  # Skip if embedding already exists
 
-            tfidf_vector = embedding_service.transform([cluster.general_job_desc_raw])
+            tfidf_vector = embedding_service.transform([cluster.general_job_desc_tfidf])
             embedding_vector = tfidf_vector.toarray()[0].tolist()
 
             embedding_obj = models.ClusterEmbedding(
