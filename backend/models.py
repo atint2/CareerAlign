@@ -49,15 +49,22 @@ class Cluster(Base):
     general_job_desc_tfidf = Column(String, nullable=True)
     num_postings = Column(Integer, nullable=False)
 
-class ClusterCopy(Base):
-    __tablename__ = "clusters_copy"
+class ClusterEmbedding(Base):
+    __tablename__ = "cluster_embeddings"
+
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    cluster_id = Column(Integer, nullable=False, unique=True)
-    title = Column(String, nullable=True)
-    general_job_desc_raw = Column(String, nullable=True)
-    general_job_desc_sbert = Column(String, nullable=True)
-    general_job_desc_tfidf = Column(String, nullable=True)
-    num_postings = Column(Integer, nullable=False)
+    embedding = Column(Vector(5000), nullable=False)
+    cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
+
+# class ClusterCopy(Base):
+#     __tablename__ = "clusters_copy"
+#     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+#     cluster_id = Column(Integer, nullable=False, unique=True)
+#     title = Column(String, nullable=True)
+#     general_job_desc_raw = Column(String, nullable=True)
+#     general_job_desc_sbert = Column(String, nullable=True)
+#     general_job_desc_tfidf = Column(String, nullable=True)
+#     num_postings = Column(Integer, nullable=False)
 
 class Resume(Base):
     __tablename__ = "resumes"

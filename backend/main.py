@@ -58,13 +58,17 @@ class ClusterBase(BaseModel):
     general_job_desc_tfidf: Optional[str] = None
     num_postings: int
 
-class ClusterCopyBase(BaseModel):
+class ClusterEmbeddingBase(BaseModel):
+    embedding: List[float]
     cluster_id: int
-    title: Optional[str] = None
-    general_job_desc_raw: Optional[str] = None
-    general_job_desc_sbert: Optional[str] = None
-    general_job_desc_tfidf: Optional[str] = None
-    num_postings: int
+
+# class ClusterCopyBase(BaseModel):
+#     cluster_id: int
+#     title: Optional[str] = None
+#     general_job_desc_raw: Optional[str] = None
+#     general_job_desc_sbert: Optional[str] = None
+#     general_job_desc_tfidf: Optional[str] = None
+#     num_postings: int
 
 class ResumeBase(BaseModel):
     resume_id: str
@@ -111,7 +115,7 @@ async def get_job_embeddings(db: db_dependency):
 
 # Endpoint to create a new job embedding
 @app.post('/api/embeddings/')
-async def create_job_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
+async def create_job_posting_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
     db_embedding = models.JobEmbedding(embedding=JobEmbedding.embedding,
                                        model_version=JobEmbedding.model_version,
                                        job_posting_id=JobEmbedding.job_posting_id)
