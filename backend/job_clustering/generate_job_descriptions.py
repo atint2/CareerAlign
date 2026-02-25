@@ -1,3 +1,5 @@
+import re
+
 from google import genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction import text
@@ -77,6 +79,9 @@ def create_llm_prompt(keywords, sample_titles, sample_descriptions):
     - 1 short role title
     - 3–5 sentence professional summary
     - Avoid mentioning clusters, data, or analysis.
+    - Respond in the following format:
+    **Role Title:** [Inferred common role title]
+    **Professional Summary:** [Concise summary of common responsibilities and skills]
 
     KEYWORDS:
     {keywords_text}
@@ -87,8 +92,6 @@ def create_llm_prompt(keywords, sample_titles, sample_descriptions):
     SAMPLE DESCRIPTIONS:
     {desc_text}
     """
-
-    print("LLM Prompt:\n", prompt.strip())
 
     return prompt.strip()
 
@@ -162,7 +165,7 @@ def main():
                 .one_or_none()
             )
             if existing:
-                if existing.cluster_desc:
+                if existing.general_job_desc_raw:
                     pass
                 else:
                     # Generate description for cluster
@@ -171,9 +174,24 @@ def main():
                         sample_titles,
                         sample_descs,
                     )
+
+                    # Extract information from generated description using regex
+                    # Extract title from cluster_desc using regex
+                    title = None 
+                    title_match = re.search(r"\*\*Role Title:\*\*\s*(.+)", description) 
+                    if title_match: 
+                        title = title_match.group(1).strip() 
+                    # Extract general job description from cluster_desc using regex 
+                    desc_match = re.search(r"\*\*Professional Summary:\*\*\s*(.+)", description, re.DOTALL) 
+                    if desc_match: 
+                        description = desc_match.group(1).strip() 
+                    else: 
+                        print(f"Warning: Could not extract description for cluster_id {cid}") 
+                    
                     if description != "Description unavailable.":
-                        # Save description to database
-                        existing.cluster_desc = description
+                    # Save description to database
+                        existing.general_job_desc_raw = description
+                        existing.title = title
                         db_session.commit()
                     # Sleep before next iteration
                     time.sleep(30)

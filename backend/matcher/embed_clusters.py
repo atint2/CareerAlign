@@ -47,36 +47,36 @@ def main():
         return
 
     # Load the fitted TF-IDF vectorizer and transform job descriptions, then save embeddings to DB
-    # try:
-    #     # Load the fitted TF-IDF vectorizer
-    #     embedding_service = load_vectorizer("tfidf_vectorizer.pkl")
-    #     print("Loaded TF-IDF vectorizer from disk.")
+    try:
+        # Load the fitted TF-IDF vectorizer
+        embedding_service = load_vectorizer("tfidf_vectorizer.pkl")
+        print("Loaded TF-IDF vectorizer from disk.")
 
-    #     # Check for existing cluster embeddings to avoid duplicates
-    #     existing_cluster_ids = {
-    #         e.cluster_id
-    #         for e in db_session.query(models.ClusterEmbeddingTFIDF.cluster_id).all()
-    #     }
+        # Check for existing cluster embeddings to avoid duplicates
+        existing_cluster_ids = {
+            e.cluster_id
+            for e in db_session.query(models.ClusterEmbeddingTFIDF.cluster_id).all()
+        }
 
-    #     # Transform job descriptions and save embeddings to DB
-    #     for cluster in job_descs:
-    #         if cluster.id in existing_cluster_ids:
-    #             continue  # Skip if embedding already exists
+        # Transform job descriptions and save embeddings to DB
+        for cluster in job_descs:
+            if cluster.id in existing_cluster_ids:
+                continue  # Skip if embedding already exists
 
-    #         tfidf_vector = embedding_service.transform([cluster.general_job_desc_tfidf])
-    #         embedding_vector = tfidf_vector.toarray()[0].tolist()
+            tfidf_vector = embedding_service.transform([cluster.general_job_desc_tfidf])
+            embedding_vector = tfidf_vector.toarray()[0].tolist()
 
-    #         embedding_obj = models.ClusterEmbeddingTFIDF(
-    #             embedding=embedding_vector,
-    #             cluster_id=cluster.id
-    #         )
-    #         db_session.add(embedding_obj)
+            embedding_obj = models.ClusterEmbeddingTFIDF(
+                embedding=embedding_vector,
+                cluster_id=cluster.id
+            )
+            db_session.add(embedding_obj)
 
-    #     db_session.commit()
-    #     print(f"Inserted/updated {len(job_descs)} cluster embeddings.")
+        db_session.commit()
+        print(f"Inserted/updated {len(job_descs)} cluster embeddings.")
 
-    # except Exception as e:
-    #     print("Exception during TF-IDF transformation or DB insertion:", e)
+    except Exception as e:
+        print("Exception during TF-IDF transformation or DB insertion:", e)
     
     # Embed job descriptions using SBERT and save to DB
     try:
