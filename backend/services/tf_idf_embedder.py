@@ -1,10 +1,9 @@
 """
-Service for embedding documents using TF-IDF and SBERT
+Service for embedding documents using TF-IDF
 """
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction import text
-import numpy as np
 
 class TFIDFEmbeddingService:
     """
