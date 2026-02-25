@@ -1,6 +1,5 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from config import EMBEDDING_MODEL
 from pathlib import Path
 import sys
 import asyncio
@@ -11,10 +10,10 @@ def setup_backend_imports():
 	backend_dir = root / "backend"
 	sys.path.insert(0, str(backend_dir))
 
-def embed_job_descriptions(job_descriptions: list[str]) -> np.ndarray:
-    model = SentenceTransformer(EMBEDDING_MODEL)
-    embeddings = model.encode(job_descriptions, show_progress_bar=True, normalize_embeddings=True)
-    return np.array(embeddings)
+# def embed_job_descriptions(job_descriptions: list[str], EMBEDDING_MODEL) -> np.ndarray:
+#     model = SentenceTransformer(EMBEDDING_MODEL)
+#     embeddings = model.encode(job_descriptions, show_progress_bar=True, normalize_embeddings=True)
+#     return np.array(embeddings)
 
 async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_version: str, db_session):
     # Use endpoint in main.py to save embeddings
@@ -32,10 +31,14 @@ async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_
 
 async def main():
     setup_backend_imports()
+
     # Import backend modules after adjusting sys.path
     try:
         import database
         import models
+        from config import EMBEDDING_MODEL
+        sys.path.append(str(Path(__file__).resolve().parents[2] / "backend"))
+        from services.sbert_embedder import embed_job_descriptions
     except Exception as e:
         print("Exception importing backend modules:", e)
 
@@ -54,7 +57,7 @@ async def main():
         embeddings = embed_job_descriptions(job_descriptions)
 
         print("Saving embeddings to database...")
-        await save_job_embeddings(job_ids, embeddings, EMBEDDING_MODEL, db_session)
+        # await save_job_embeddings(job_ids, embeddings, EMBEDDING_MODEL, db_session)
     except Exception as e:
         print("Exception embedding job postings and saving to database:", e)
 
