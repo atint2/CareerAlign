@@ -2,9 +2,9 @@ import umap
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import numpy as np
-from config import EMBEDDING_MODEL
-from config import UMAP_PARAMS
-from config import PCA_PARAMS 
+from backend.config import EMBEDDING_MODEL
+from backend.config import UMAP_PARAMS
+from backend.config import PCA_PARAMS 
 from pathlib import Path
 import sys
 

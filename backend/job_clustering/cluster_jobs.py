@@ -1,5 +1,5 @@
 import hdbscan 
-from config import HDBSCAN_PARAMS 
+from backend.config import HDBSCAN_PARAMS 
 from collections import Counter
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics.pairwise import cosine_similarity
