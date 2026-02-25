@@ -74,8 +74,8 @@ class TFIDFPreprocessor:
         filtered_text = re.sub(r'CSHARP', 'C#', filtered_text)
 
         # Stemming
-        stemmed_words = [self.stem_word(word) for word in filtered_text.split()]
-        filtered_text = " ".join(stemmed_words)
+        # stemmed_words = [self.stem_word(word) for word in filtered_text.split()]
+        # filtered_text = " ".join(stemmed_words)
 
         # Remove extra whitespace
         filtered_text = " ".join(filtered_text.split())

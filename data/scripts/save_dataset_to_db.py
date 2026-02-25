@@ -27,18 +27,12 @@ def clean_description(text):
 
 	return sbert_cleaned, tfidf_cleaned
 
-def main():
-	dataset_filepath = Path(__file__).resolve().parents[1] / "processed" / "cleaned_job_postings.csv"
-
-	load_dotenv()  # ensure DATABASE_URL is present for backend/database.py
-	setup_backend_imports()
-
-	# Import backend modules after adjusting sys.path
+def save_job_postings_to_db(dataset_filepath):
 	try:
 		import database
 		import models
 	except Exception as e:
-		print("Exception importing backend modules:", e)
+		print("Exception importing backend modules:", e)	
 
 	# Read CSV
 	df = pd.read_csv(dataset_filepath)
@@ -96,6 +90,72 @@ def main():
 	finally:
 		session.close()
 
+def save_resumes_to_db(dataset_filepath):
+	try:
+		import database
+		import models
+	except Exception as e:
+		print("Exception importing backend modules:", e)	
+
+	df = pd.read_csv(dataset_filepath)
+	if df.empty:
+		print("CSV is empty — nothing to do.")
+		return
+	
+	# Ensure at least required columns exist
+	required = ["ID", "Resume_str"]
+	missing = [c for c in required if c not in df.columns]
+	if missing:
+		raise SystemExit(f"CSV is missing required columns: {missing}")
+	
+	# Normalize NaNs to None
+	df = df.where(pd.notnull(df), None)
+
+	# Initialize database session
+	SessionLocal = database.SessionLocal
+	session = SessionLocal()
+	try:
+		# Fetch existing resume_ids from database to avoid duplicates
+		existing = set(r[0] for r in session.query(models.Resume.resume_id).all())
+		
+
+		to_insert = []
+		for _, row in df.iterrows():
+			rid = str(row["ID"]).strip()
+			if rid in existing:
+				continue
+			# Clean resume text
+			desc_sbert, desc_tfidf = clean_description(row.get("Resume_str", ""))
+			row["content_sbert"] = desc_sbert
+			row["content_tfidf"] = desc_tfidf
+			r = models.Resume(
+				resume_id=rid,
+				content_raw=row.get("Resume_str"),
+				content_sbert=row.get("content_sbert"),
+				content_tfidf=row.get("content_tfidf"),
+			)
+			to_insert.append(r)
+
+		print(f"Found {len(df)} rows in CSV; {len(to_insert)} new resumes to insert.")
+
+        # Bulk insert new resumes
+		if to_insert:
+			session.add_all(to_insert)
+			session.commit()
+			print(f"Inserted {len(to_insert)} new resumes.")
+		else:
+			print("No new resumes to insert.")
+
+	finally:
+		session.close()
+	
+def main():
+	dataset_filepath = Path(__file__).resolve().parents[1] / "processed" / "cleaned_resumes.csv"
+
+	load_dotenv()  # ensure DATABASE_URL is present for backend/database.py
+	setup_backend_imports()
+
+	save_resumes_to_db(dataset_filepath)
 
 if __name__ == "__main__":
 	main()

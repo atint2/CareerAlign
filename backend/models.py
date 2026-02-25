@@ -43,14 +43,34 @@ class Cluster(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     cluster_id = Column(Integer, nullable=False, unique=True)
-    cluster_desc = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    general_job_desc_raw = Column(String, nullable=True)
+    general_job_desc_sbert = Column(String, nullable=True)
+    general_job_desc_tfidf = Column(String, nullable=True)
     num_postings = Column(Integer, nullable=False)
+
+class ClusterEmbedding(Base):
+    __tablename__ = "cluster_embeddings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    embedding = Column(Vector(5000), nullable=False)
+    cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
+
+# class ClusterCopy(Base):
+#     __tablename__ = "clusters_copy"
+#     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+#     cluster_id = Column(Integer, nullable=False, unique=True)
+#     title = Column(String, nullable=True)
+#     general_job_desc_raw = Column(String, nullable=True)
+#     general_job_desc_sbert = Column(String, nullable=True)
+#     general_job_desc_tfidf = Column(String, nullable=True)
+#     num_postings = Column(Integer, nullable=False)
 
 class Resume(Base):
     __tablename__ = "resumes"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    filename = Column(String, nullable=False, unique=True)
-    content = Column(String, nullable=False)
+    resume_id = Column(String, unique=True, index=True, nullable=False)
+    content_raw = Column(String, nullable=False)
     content_sbert = Column(String, nullable=True)
     content_tfidf = Column(String, nullable=True)

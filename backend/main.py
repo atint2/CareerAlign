@@ -52,12 +52,27 @@ class ReducedEmbeddingBase(BaseModel):
 
 class ClusterBase(BaseModel):
     cluster_id: int
-    cluster_desc: Optional[str] = None
+    title: Optional[str] = None
+    general_job_desc_raw: Optional[str] = None
+    general_job_desc_sbert: Optional[str] = None
+    general_job_desc_tfidf: Optional[str] = None
     num_postings: int
 
+class ClusterEmbeddingBase(BaseModel):
+    embedding: List[float]
+    cluster_id: int
+
+# class ClusterCopyBase(BaseModel):
+#     cluster_id: int
+#     title: Optional[str] = None
+#     general_job_desc_raw: Optional[str] = None
+#     general_job_desc_sbert: Optional[str] = None
+#     general_job_desc_tfidf: Optional[str] = None
+#     num_postings: int
+
 class ResumeBase(BaseModel):
-    filename: str
-    content: str
+    resume_id: str
+    content_raw: str
     content_sbert: Optional[str] = None
     content_tfidf: Optional[str] = None
 
@@ -100,7 +115,7 @@ async def get_job_embeddings(db: db_dependency):
 
 # Endpoint to create a new job embedding
 @app.post('/api/embeddings/')
-async def create_job_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
+async def create_job_posting_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
     db_embedding = models.JobEmbedding(embedding=JobEmbedding.embedding,
                                        model_version=JobEmbedding.model_version,
                                        job_posting_id=JobEmbedding.job_posting_id)

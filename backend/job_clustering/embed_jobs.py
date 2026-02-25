@@ -18,7 +18,7 @@ def embed_job_descriptions(job_descriptions: list[str]) -> np.ndarray:
 
 async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_version: str, db_session):
     # Use endpoint in main.py to save embeddings
-    from main import create_job_embedding
+    from main import create_job_posting_embedding
     from main import EmbeddingBase
     for job_id, embedding in zip(job_ids, embeddings):
         embedding_obj = EmbeddingBase(
@@ -27,7 +27,7 @@ async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_
             job_posting_id=job_id
         )
 
-        await create_job_embedding(embedding_obj, db_session)
+        await create_job_posting_embedding(embedding_obj, db_session)
     print(f"Saved {len(job_ids)} job embeddings to the database.")
 
 async def main():
