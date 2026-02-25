@@ -49,22 +49,28 @@ class Cluster(Base):
     general_job_desc_tfidf = Column(String, nullable=True)
     num_postings = Column(Integer, nullable=False)
 
-class ClusterEmbedding(Base):
-    __tablename__ = "cluster_embeddings"
+class ClusterEmbeddingTFIDF(Base):
+    __tablename__ = "cluster_embeddings_tfidf"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     embedding = Column(Vector(5000), nullable=False)
     cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
 
-# class ClusterCopy(Base):
-#     __tablename__ = "clusters_copy"
-#     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-#     cluster_id = Column(Integer, nullable=False, unique=True)
-#     title = Column(String, nullable=True)
-#     general_job_desc_raw = Column(String, nullable=True)
-#     general_job_desc_sbert = Column(String, nullable=True)
-#     general_job_desc_tfidf = Column(String, nullable=True)
-#     num_postings = Column(Integer, nullable=False)
+class ClusterEmbeddingSBERT(Base):
+    __tablename__ = "cluster_embeddings_sbert"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    embedding = Column(Vector(384), nullable=False)
+    cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
+
+class ReducedClusterEmbedding(Base):
+    __tablename__ = "reduced_cluster_embeddings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    reduced_embedding = Column(Vector(15), nullable=False)
+    model_version = Column(String, nullable=False)
+    cluster_embedding_id = Column(Integer, ForeignKey("cluster_embeddings_sbert.id", ondelete="CASCADE"), nullable=False, index=True)
+    reduction_method = Column(String, nullable=False)
 
 class Resume(Base):
     __tablename__ = "resumes"

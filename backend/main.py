@@ -56,19 +56,19 @@ class ClusterBase(BaseModel):
     general_job_desc_raw: Optional[str] = None
     general_job_desc_sbert: Optional[str] = None
     general_job_desc_tfidf: Optional[str] = None
-    num_postings: int
+    num_postings: int  
 
+# For TF-IDF and SBERT cluster embeddings
 class ClusterEmbeddingBase(BaseModel):
     embedding: List[float]
     cluster_id: int
 
-# class ClusterCopyBase(BaseModel):
-#     cluster_id: int
-#     title: Optional[str] = None
-#     general_job_desc_raw: Optional[str] = None
-#     general_job_desc_sbert: Optional[str] = None
-#     general_job_desc_tfidf: Optional[str] = None
-#     num_postings: int
+# For SBERT embeddings, which have a different dimension than TF-IDF
+class ReducedClusterEmbeddingBase(BaseModel):
+    reduced_embedding: List[float]
+    model_version: str
+    cluster_embedding_id: int
+    reduction_method: str
 
 class ResumeBase(BaseModel):
     resume_id: str
