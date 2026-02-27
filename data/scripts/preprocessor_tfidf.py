@@ -1,4 +1,5 @@
 import re
+import spacy
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -81,3 +82,11 @@ class TFIDFPreprocessor:
         filtered_text = " ".join(filtered_text.split())
 
         return filtered_text.strip()
+
+def main():
+    nlp = spacy.load('en_core_web_sm')
+    text = "Apples and oranges are similar."
+    doc = nlp(text)
+
+if __name__ == "__main__":
+    main()
