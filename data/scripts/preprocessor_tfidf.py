@@ -1,4 +1,5 @@
 import re
+import spacy
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -77,7 +78,25 @@ class TFIDFPreprocessor:
         # stemmed_words = [self.stem_word(word) for word in filtered_text.split()]
         # filtered_text = " ".join(stemmed_words)
 
+        # Lemmatization
+        nlp = spacy.load('en_core_web_sm', disable=["parser", "ner"])
+        doc = nlp(filtered_text)
+        lemmatized_text = " ".join([token.lemma_ for token in doc])
+
         # Remove extra whitespace
-        filtered_text = " ".join(filtered_text.split())
+        filtered_text = " ".join(lemmatized_text.split())
 
         return filtered_text.strip()
+
+def main():
+    preprocessor = TFIDFPreprocessor()
+    # Example usage
+    sample_text = """ We are seeking a Senior Software Engineer with 5+ years of experience 
+    in C++ and Python development. Must have expertise in Node.js and React.js.
+    Contact: jobs@company.com | Visit: https://company.com/careers"""
+
+    cleaned_text = preprocessor.clean_text_tfidf(sample_text)
+    print("Cleaned text:", cleaned_text)
+
+if __name__ == "__main__":
+    main()
