@@ -6,6 +6,8 @@ The script will skip rows whose `job_id` already exist in the database to avoid 
 from pathlib import Path
 import sys
 from dotenv import load_dotenv
+from tqdm import tqdm
+tqdm.pandas()
 import pandas as pd
 
 def setup_backend_imports():
@@ -13,19 +15,6 @@ def setup_backend_imports():
 	root = Path(__file__).resolve().parents[2]
 	backend_dir = root / "backend"
 	sys.path.insert(0, str(backend_dir))
-
-def clean_description(text):
-	"""Use preprocessors to clean job description text."""
-	sys.path.insert(0, str(Path(__file__).parent))
-	from preprocessor_sbert import SBERTPreprocessor
-	from preprocessor_tfidf import TFIDFPreprocessor
-
-	sbert_prep = SBERTPreprocessor()
-	sbert_cleaned = sbert_prep.clean_text_sbert(text)
-	tfidf_prep = TFIDFPreprocessor()
-	tfidf_cleaned = tfidf_prep.clean_text_tfidf(text)
-
-	return sbert_cleaned, tfidf_cleaned
 
 def save_job_postings_to_db(dataset_filepath):
 	try:
@@ -51,21 +40,53 @@ def save_job_postings_to_db(dataset_filepath):
 
 	SessionLocal = database.SessionLocal
 	session = SessionLocal()
-	try:
-		# Fetch existing job_ids from database to avoid duplicates
-		existing = set(r[0] for r in session.query(models.JobPosting.job_id).all())
 
+	try:
+		# Filter existing ids to avoid duplicates
+		existing = set(
+			r[0] for r in session.query(models.JobPosting.job_id).all()
+		)
+
+		df_new = df[~df["job_id"].isin(existing)].copy()
+
+		print(f"Found {len(df)} total rows.")
+		print(f"{len(df_new)} new rows to process.")
+
+		if df_new.empty:
+			print("No new postings to insert.")
+			return
+
+		# Initialize preprocessors
+		sys.path.insert(0, str(Path(__file__).parent))
+		from preprocessor_sbert import SBERTPreprocessor
+		from preprocessor_tfidf import TFIDFPreprocessor
+
+		sbert_prep = SBERTPreprocessor()
+		tfidf_prep = TFIDFPreprocessor()
+
+		# Batch preprocess descriptions and build JobPosting objects
+		descriptions = df_new["description"].fillna("").astype(str)
+
+		print("Cleaning TF-IDF text...")
+		df_new["desc_tfidf"] = descriptions.progress_apply(
+			tfidf_prep.clean_text_tfidf
+		)
+
+		print("Encoding SBERT embeddings...")
+		df_new["desc_sbert"] = descriptions.progress_apply(
+			sbert_prep.clean_text_sbert
+		)
+
+		# Insert into database
 		to_insert = []
-		for _, row in df.iterrows():
-			jid = str(row["job_id"]).strip()
-			if jid in existing:
-				continue
-			# Clean description text
-			desc_sbert, desc_tfidf = clean_description(row.get("description", ""))
-			row["desc_sbert"] = desc_sbert
-			row["desc_tfidf"] = desc_tfidf
+
+		for _, row in tqdm(
+			df_new.iterrows(),
+			total=len(df_new),
+			desc="Building DB objects"
+		):
 			jp = models.JobPosting(
-				job_id=jid,
+				job_id=row["job_id"],
 				title=row.get("title"),
 				desc_raw=row.get("description"),
 				desc_sbert=row.get("desc_sbert"),
@@ -77,15 +98,11 @@ def save_job_postings_to_db(dataset_filepath):
 			)
 			to_insert.append(jp)
 
-		print(f"Found {len(df)} rows in CSV; {len(to_insert)} new postings to insert.")
+		print("Inserting into database...")
+		session.add_all(to_insert)
+		session.commit()
 
-        # Bulk insert new postings
-		if to_insert:
-			session.add_all(to_insert)
-			session.commit()
-			print(f"Inserted {len(to_insert)} new job_postings.")
-		else:
-			print("No new postings to insert.")
+		print(f"Inserted {len(to_insert)} new job_postings.")
 
 	finally:
 		session.close()
@@ -115,19 +132,48 @@ def save_resumes_to_db(dataset_filepath):
 	SessionLocal = database.SessionLocal
 	session = SessionLocal()
 	try:
-		# Fetch existing resume_ids from database to avoid duplicates
-		existing = set(r[0] for r in session.query(models.Resume.resume_id).all())
-		
+		# Filter existing ids to avoid duplicates
+		existing = set(
+			r[0] for r in session.query(models.Resume.resume_id).all()
+		)
 
+		df_new = df[~df["ID"].isin(existing)].copy()
+
+		print(f"Found {len(df)} total rows.")
+		print(f"{len(df_new)} new rows to process.")
+
+		if df_new.empty:
+			print("No new resumes to insert.")
+			return
+		
+		# Initialize preprocessors
+		sys.path.insert(0, str(Path(__file__).parent))
+		from preprocessor_sbert import SBERTPreprocessor
+		from preprocessor_tfidf import TFIDFPreprocessor
+
+		sbert_prep = SBERTPreprocessor()
+		tfidf_prep = TFIDFPreprocessor()
+
+		# Batch preprocess resumes and build Resume objects
+		resume_texts = df_new["Resume_str"].fillna("").astype(str)
+
+		print("Cleaning TF-IDF text...")
+		df_new["content_tfidf"] = resume_texts.progress_apply(
+			tfidf_prep.clean_text_tfidf
+		)
+
+		print("Encoding SBERT embeddings...")
+		df_new["content_sbert"] = resume_texts.progress_apply(
+			sbert_prep.clean_text_sbert
+		)
+
+		# Insert into database
 		to_insert = []
-		for _, row in df.iterrows():
+
+		for _, row in df_new.iterrows():
 			rid = str(row["ID"]).strip()
 			if rid in existing:
 				continue
-			# Clean resume text
-			desc_sbert, desc_tfidf = clean_description(row.get("Resume_str", ""))
-			row["content_sbert"] = desc_sbert
-			row["content_tfidf"] = desc_tfidf
 			r = models.Resume(
 				resume_id=rid,
 				content_raw=row.get("Resume_str"),
@@ -150,12 +196,14 @@ def save_resumes_to_db(dataset_filepath):
 		session.close()
 	
 def main():
-	dataset_filepath = Path(__file__).resolve().parents[1] / "processed" / "cleaned_resumes.csv"
+	resume_dataset = Path(__file__).resolve().parents[1] / "processed" / "cleaned_resumes.csv"
+	job_posting_dataset = Path(__file__).resolve().parents[1] / "processed" / "cleaned_job_postings.csv"
 
 	load_dotenv()  # ensure DATABASE_URL is present for backend/database.py
 	setup_backend_imports()
 
-	save_resumes_to_db(dataset_filepath)
+	# save_job_postings_to_db(job_posting_dataset)
+	save_resumes_to_db(resume_dataset)
 
 if __name__ == "__main__":
 	main()
