@@ -19,15 +19,10 @@ class JobPosting(Base):
 class JobEmbedding(Base):
     __tablename__ = "job_embeddings"
 
-    id = Column(Integer, autoincrement=True, index=True)
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True)
     embedding = Column(Vector(384), nullable=False)
     model_version = Column(String, nullable=False)
     job_posting_id = Column(Integer, ForeignKey("job_postings.id", ondelete="CASCADE"), nullable=False, index=True)
-
-    __table_args__ = (
-        # Define the composite primary key constraint
-        PrimaryKeyConstraint('job_posting_id', 'model_version', name='embedding_pk'),
-    )
 
 class ReducedEmbedding(Base):
     __tablename__ = "reduced_job_embeddings"
