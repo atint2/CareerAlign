@@ -35,7 +35,7 @@ You should now be able to see "postgres" under Databases.
 DATABASE_URL = "postgresql://postgres:[pwd]@localhost:5432/postgres" 
 5. Install required packages:
 ```sh
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 ```
 6. Run the Docker container (if not already running):
 Make sure Docker Desktop is running.
@@ -51,27 +51,27 @@ docker ps
 .\.venv\Scripts\Activate.ps1
 ```
 8. Run the backend:
+First verify that you are at the project root.
 ```sh
-cd backend
-uvicorn main:app --reload --port 5000
+uvicorn backend.main:app --reload --port 8000
 ```
-The backend serves GET /api/ping on port 5000 for testing purposes.
+The backend serves GET /api/ping on port 8000 for testing purposes.
 
 ### Returning to project
-After the initial project setup, the only steps that need to be completed to run the backend again are 6-8. Backend endpoints can be tested by visiting http://127.0.0.1:5000/docs.
+After the initial project setup, the only steps that need to be completed to run the backend again are 6-8. Backend endpoints can be tested by visiting http://127.0.0.1:8000/docs.
 
-## Frontend (React + Vite)
-1. Install dependencies and start dev server:
+## Frontend (Streamlit)
+1. Verify that all required packages are installed:
 ```sh
-cd frontend
-npm install
+pip install -r requirements.txt
 ```
-2. Open the Vite dev server
+2. Run the frontend:
+First verify that you are at the project root.
 ```sh
-npm run dev
+streamlit run streamlit/app.py
 ```
-3. The frontend fetches `/api/data` and Vite proxies `/api` to the Flask backend during development.
+3. Verify that everything is working properly by visiting `http://localhost:8501`, the default port for Streamlit.
 
 ## Quick checks
-- Test backend directly: `curl http://localhost:5000/api/data`
+- Test backend directly: `curl http://localhost:8000/api/data`
 - Start backend before running the frontend so the proxy can reach the API.
