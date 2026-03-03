@@ -1,6 +1,6 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, PrimaryKeyConstraint
 from pgvector.sqlalchemy import Vector
-from database import Base
+from backend.database import Base
 
 class JobPosting(Base):
     __tablename__ = "job_postings"

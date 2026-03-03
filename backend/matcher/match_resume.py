@@ -1,5 +1,5 @@
 import pickle
-from google import genai
+from google.genai import Client
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=API_KEY)
+client = Client(api_key=API_KEY)
 
 def setup_backend_imports(path="backend"):
 	# Ensure backend/ is on sys.path so its modules import as top-level modules
@@ -26,8 +26,7 @@ def load_vectorizer(path="tfidf_vectorizer.pkl"):
     with open(path, "rb") as f:
         vectorizer = pickle.load(f)
     # Wrap into your embedding service
-    setup_backend_imports("backend/services")
-    from tf_idf_embedder import TFIDFEmbeddingService
+    from backend.services.tf_idf_embedder import TFIDFEmbeddingService
     embedding_service = TFIDFEmbeddingService()
     embedding_service.vectorizer = vectorizer
     return embedding_service
@@ -125,66 +124,109 @@ def generate_resume_insights(prompt):
         print("LLM generation failed:", e)
         return "Feedback unavailable."
 
-def main():
-    setup_backend_imports()
+def match_resume(resume_text: str, db_session):
+    from backend import models
 
+    # Load embedding services
     try:
-        import database
-        import models
+        tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
+        from backend.services.sbert_embedder import SBERTEmbeddingService
+        sbert_service = SBERTEmbeddingService()
     except Exception as e:
-        print("Exception importing backend modules:", e)
-
-    # Initialize database session
-    SessionLocal = database.SessionLocal
-    db_session = SessionLocal()
+        print("Exception loading embedding services:", e)
     
-    embedding_service = load_vectorizer("tfidf_vectorizer.pkl")
+    # Load preprocessors
+    try:
+        from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
+        tfidf_prep = TFIDFPreprocessor()
+        from data.scripts.preprocessor_sbert import SBERTPreprocessor
+        sbert_prep = SBERTPreprocessor()
+    except Exception as e:
+        print("Exception loading preprocessors:", e)
+    
+    # Preprocess resume text
+    resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_text)
+    resume_text_sbert = sbert_prep.clean_text_sbert(resume_text)
+    
+    # Find matches using TF-IDF
+    top_jobs_tfidf = find_top_job_matches_tfidf(resume_text_tfidf, tfidf_service, db_session, models, top_n=3)
+    for job in top_jobs_tfidf:
+        print(f"{job['title']} - similarity: {job['similarity']:.4f}")
+        print(job["snippet"])
+        print("-" * 60)
 
-    # Example resume text
-    for filename in os.listdir(PROCESSED_DIR):
-            # Read file
-            file_path = PROCESSED_DIR / filename
-            with open(file_path, "r", encoding="utf-8") as f:
-                resume_text = f.read()
-            print(f"\nFinding matches for resume: {filename}")
+    # Find matches using SBERT
+    top_jobs_sbert = find_top_job_matches_sbert(resume_text_sbert, sbert_service, db_session, models, top_n=3)
+    for job in top_jobs_sbert:
+        print(f"{job['title']} - similarity: {job['similarity']:.4f}")
+        print(job["snippet"])
+        print("-" * 60)
 
-            setup_backend_imports("data/scripts")
-            from preprocessor_tfidf import TFIDFPreprocessor
-            tfidf_prep = TFIDFPreprocessor()
-            from preprocessor_sbert import SBERTPreprocessor
-            sbert_prep = SBERTPreprocessor()
+    return {
+        "tfidf_matches": top_jobs_tfidf,
+        "sbert_matches": top_jobs_sbert
+    }
 
-            resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_text)
-            resume_text_sbert = sbert_prep.clean_text_sbert(resume_text)
+# def main():
+#     setup_backend_imports()
 
-            setup_backend_imports("backend/services")
-            from sbert_embedder import SBERTEmbeddingService
-            sbert_service = SBERTEmbeddingService()
+#     try:
+#         import database
+#         import models
+#     except Exception as e:
+#         print("Exception importing backend modules:", e)
 
-            # First use TF-IDF to find top job matches
-            print(f"\nFinding matches for resume: {filename} using TF-IDF...")
-            top_jobs_tfidf = find_top_job_matches_tfidf(resume_text_tfidf, embedding_service, db_session, models, top_n=3)
-            for job in top_jobs_tfidf:
-                print(f"{job['title']} - similarity: {job['similarity']:.4f}")
-                print(job["snippet"])
-                print("-" * 60)
+#     # Initialize database session
+#     SessionLocal = database.SessionLocal
+#     db_session = SessionLocal()
+    
+#     embedding_service = load_vectorizer("tfidf_vectorizer.pkl")
 
-            # Then use SBERT to find top cluster matches
-            print(f"\nFinding matches for resume: {filename} using SBERT...")
-            top_jobs_sbert = find_top_job_matches_sbert(resume_text_sbert, sbert_service, db_session, models, top_n=3)
-            for job in top_jobs_sbert:
-                print(f"{job['title']} - similarity: {job['similarity']:.4f}")
-                print(job["snippet"])
-                print("-" * 60)
+#     # Example resume text
+#     for filename in os.listdir(PROCESSED_DIR):
+#             # Read file
+#             file_path = PROCESSED_DIR / filename
+#             with open(file_path, "r", encoding="utf-8") as f:
+#                 resume_text = f.read()
+#             print(f"\nFinding matches for resume: {filename}")
 
-            # Create LLM prompt and generate insights
-            if (filename == "Masters Resume June 2024.txt"):
-                prompt = create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert)
-                insights = generate_resume_insights(prompt)
-                print(f"\nLLM-Generated Insights for {filename}:\n{insights}")
+#             setup_backend_imports("data/scripts")
+#             from preprocessor_tfidf import TFIDFPreprocessor
+#             tfidf_prep = TFIDFPreprocessor()
+#             from preprocessor_sbert import SBERTPreprocessor
+#             sbert_prep = SBERTPreprocessor()
+
+#             resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_text)
+#             resume_text_sbert = sbert_prep.clean_text_sbert(resume_text)
+
+#             setup_backend_imports("backend/services")
+#             from sbert_embedder import SBERTEmbeddingService
+#             sbert_service = SBERTEmbeddingService()
+
+#             # First use TF-IDF to find top job matches
+#             print(f"\nFinding matches for resume: {filename} using TF-IDF...")
+#             top_jobs_tfidf = find_top_job_matches_tfidf(resume_text_tfidf, embedding_service, db_session, models, top_n=3)
+#             for job in top_jobs_tfidf:
+#                 print(f"{job['title']} - similarity: {job['similarity']:.4f}")
+#                 print(job["snippet"])
+#                 print("-" * 60)
+
+#             # Then use SBERT to find top cluster matches
+#             print(f"\nFinding matches for resume: {filename} using SBERT...")
+#             top_jobs_sbert = find_top_job_matches_sbert(resume_text_sbert, sbert_service, db_session, models, top_n=3)
+#             for job in top_jobs_sbert:
+#                 print(f"{job['title']} - similarity: {job['similarity']:.4f}")
+#                 print(job["snippet"])
+#                 print("-" * 60)
+
+#             # Create LLM prompt and generate insights
+#             if (filename == "Masters Resume June 2024.txt"):
+#                 prompt = create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert)
+#                 insights = generate_resume_insights(prompt)
+#                 print(f"\nLLM-Generated Insights for {filename}:\n{insights}")
 
 
-    db_session.close()
+#     db_session.close()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
