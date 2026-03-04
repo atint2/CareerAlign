@@ -1,19 +1,15 @@
-from sentence_transformers import SentenceTransformer
 import numpy as np
-from pathlib import Path
-import sys
+import backend.database as database
+import backend.models as models
+from backend.config import EMBEDDING_MODEL
+from backend.services.sbert_embedder import SBERTEmbeddingService
 import asyncio
-
-def setup_backend_imports(path="backend"):
-	# Ensure backend/ is on sys.path so its modules import as top-level modules
-	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / path
-	sys.path.insert(0, str(backend_dir))
+import os
 
 async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_version: str, db_session):
     # Use endpoint in main.py to save embeddings
-    from main import create_job_posting_embedding
-    from main import EmbeddingBase
+    from backend.main import create_job_posting_embedding
+    from backend.main import EmbeddingBase
     for job_id, embedding in zip(job_ids, embeddings):
         embedding_obj = EmbeddingBase(
             embedding=embedding.tolist(),
@@ -25,18 +21,6 @@ async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_
     print(f"Saved {len(job_ids)} job embeddings to the database.")
 
 async def main():
-    setup_backend_imports()
-
-    # Import backend modules after adjusting sys.path
-    try:
-        import database
-        import models
-        from config import EMBEDDING_MODEL
-        setup_backend_imports("backend/services")
-        from sbert_embedder import SBERTEmbeddingService
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-
     SessionLocal = database.SessionLocal
     db_session = SessionLocal()
     try:
@@ -58,4 +42,5 @@ async def main():
         print("Exception embedding job postings and saving to database:", e)
 
 if __name__ == "__main__":
+  print(os.getcwd())
   asyncio.run(main())

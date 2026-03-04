@@ -60,6 +60,13 @@ The backend serves GET /api/ping on port 8000 for testing purposes.
 ### Returning to project
 After the initial project setup, the only steps that need to be completed to run the backend again are 6-8. Backend endpoints can be tested by visiting http://127.0.0.1:8000/docs.
 
+### Running backend preparation scripts
+All .py files are setup to be ran from the project root. Ensure that you are at the project root before running any of them, like embed_jobs.py for example.
+```sh
+python -m backend.job_clustering.embed_jobs
+```
+Otherwise, there may be issues importing modules.
+
 ## Frontend (Streamlit)
 1. Verify that all required packages are installed:
 ```sh
