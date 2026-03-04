@@ -1,13 +1,7 @@
+import backend.database as database
+import backend.models as models
 from sklearn.manifold import trustworthiness as calc_trustworthiness
 import numpy as np
-from pathlib import Path
-import sys
-
-def setup_backend_imports():
-	# Ensure backend/ is on sys.path so its modules import as top-level modules
-	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / "backend"
-	sys.path.insert(0, str(backend_dir))
 
 def evaluate_reduction_quality(original_embeddings, reduced_embeddings, method_name, sample_size=5000):
     """
@@ -30,14 +24,6 @@ def evaluate_reduction_quality(original_embeddings, reduced_embeddings, method_n
     print(f"Trustworthiness of {method_name}: {trust_score:.4f} (evaluated on {len(original_sample)} samples)")
 
 def main():
-    setup_backend_imports()
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-    
     SessionLocal = database.SessionLocal
     # Retrieve reduced embeddings from database and evaluate quality
     db_session = SessionLocal()

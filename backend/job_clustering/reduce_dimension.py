@@ -1,40 +1,18 @@
 import umap
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import numpy as np
 from backend.config import EMBEDDING_MODEL
 from backend.config import UMAP_PARAMS
-from backend.config import PCA_PARAMS 
-from pathlib import Path
-import sys
-
-def setup_backend_imports():
-	# Ensure backend/ is on sys.path so its modules import as top-level modules
-	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / "backend"
-	sys.path.insert(0, str(backend_dir))
+import backend.database as database
+import backend.models as models
 
 def reduce_dimensions_umap(embeddings):
     reducer = umap.UMAP(**UMAP_PARAMS)
     reduced = reducer.fit_transform(embeddings)
     return reduced
 
-def reduce_dimensions_pca(embeddings):
-    # Standardize embeddings before PCA
-    scaler = StandardScaler()
-    standardized_embeddings = scaler.fit_transform(embeddings)
-    reducer = PCA(**PCA_PARAMS)
-    reduced = reducer.fit_transform(standardized_embeddings)
-    return reduced
-
 def save_reduced_job_embeddings(embedding_ids: list[int], reduced_embeddings: np.ndarray, model_version: str, reduction_method: str, db_session):
     """Save reduced embeddings directly to database"""
-    import models
 
-    # Check that table exists before trying to save
-    if not db_session.query(models.ReducedEmbedding).first():
-        print("ReducedEmbedding table does not exist. Cannot save reduced embeddings.")
-        return
     # Check that table is empty before trying to save
     if db_session.query(models.ReducedEmbedding).first():
         print("ReducedEmbedding table is not empty. Skipping save to avoid duplicates.")
@@ -57,14 +35,6 @@ def save_reduced_job_embeddings(embedding_ids: list[int], reduced_embeddings: np
     print(f"Saved {len(embedding_ids)} reduced job embeddings to the database.")
 
 def main():
-    setup_backend_imports()
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-
     SessionLocal = database.SessionLocal
     # Reduce job embeddings with UMAP and save to database
     db_session = SessionLocal()
@@ -77,13 +47,8 @@ def main():
         print(f"Reducing {len(job_embeddings_embeddings)} job embeddings using UMAP...")
         umap_embeddings = reduce_dimensions_umap(job_embeddings_embeddings)
 
-        print(f"Reducing {len(job_embeddings_embeddings)} job embeddings using PCA...")
-        pca_embeddings = reduce_dimensions_pca(job_embeddings_embeddings)
-
         print("Saving UMAP-reduced embeddings to database...")
         save_reduced_job_embeddings(job_embedding_ids, umap_embeddings, EMBEDDING_MODEL, "UMAP", db_session)
-        # print("Saving PCA-reduced embeddings to database...")
-        # save_reduced_job_embeddings(job_embedding_ids, pca_embeddings, EMBEDDING_MODEL, "PCA", db_session)
 
     except Exception as e:
         print("Exception reducing job embeddings and saving to database:", e)
