@@ -46,6 +46,7 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
         top_matches.append({
             "cluster_id": cluster.id,
             "title": cluster.title,
+            "description": cluster.general_job_desc_raw,
             "similarity": float(similarities[idx]),
             "snippet": cluster.general_job_desc_raw[:200] + "..."
         })
@@ -75,6 +76,7 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         top_matches.append({
             "cluster_id": cluster.id,
             "title": cluster.title,
+            "description": cluster.general_job_desc_raw,
             "similarity": float(similarities[idx]),
             "snippet": cluster.general_job_desc_raw[:200] + "..."
         })
@@ -179,15 +181,15 @@ def match_resume(resume_text: str, db_session):
     # Find matches using SBERT
     top_jobs_sbert = find_top_job_matches_sbert(resume_text_sbert, sbert_service, db_session, models, top_n=3)
 
-    # Create LLM prompt
-    prompt = create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert)
-    # Generate insights using LLM
-    insights_text = generate_resume_insights(prompt)
-    print(insights_text)
-    insights = json.loads(insights_text)
+    # # Create LLM prompt
+    # prompt = create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert)
+    # # Generate insights using LLM
+    # insights_text = generate_resume_insights(prompt)
+    # print(insights_text)
+    # insights = json.loads(insights_text)
 
     return {
         "tfidf_matches": top_jobs_tfidf,
         "sbert_matches": top_jobs_sbert,
-        "insights": insights
+        # "insights": insights
     }

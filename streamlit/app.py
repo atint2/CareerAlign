@@ -48,11 +48,19 @@ if st.button("Generate Career Recommendations"):
 
             st.subheader("TF-IDF Matches")
             for job in data["tfidf_matches"]:
-                st.write(job["title"], job["similarity"])
-
+                similarity_percent = int(job["similarity"] * 100)
+                with st.expander(f"{job['title']} — {similarity_percent}% match"):
+                    st.progress(similarity_percent)
+                    st.write("### Job Description")
+                    st.write(job["description"])
+                    
             st.subheader("SBERT Matches")
             for job in data["sbert_matches"]:
-                st.write(job["title"], job["similarity"])
+                similarity_percent = int(job["similarity"] * 100)
+                with st.expander(f"{job['title']} — {similarity_percent}% match"):
+                    st.progress(similarity_percent)
+                    st.write("### Job Description")
+                    st.write(job["description"])
 
             st.subheader("AI Career Insights")
             insights = data.get("insights")
@@ -62,7 +70,9 @@ if st.button("Generate Career Recommendations"):
                 st.write(insights["recommended_job_title"])
 
                 st.subheader("Confidence Score")
-                st.write(f"{insights['confidence_score']}%")
+                confidence = insights["confidence_score"]
+                st.progress(confidence)
+                st.write(f"{confidence}% confidence")
 
                 st.subheader("Why This Matches")
                 st.write(insights["match_summary"])
