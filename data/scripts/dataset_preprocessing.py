@@ -53,7 +53,7 @@ def clean_resume_dataset(dataset_filepath="data/raw/resumes.csv"):
 
 # Run cleaning script
 if __name__ == "__main__":
-    # clean_job_postings_dataset()
+    clean_job_postings_dataset()
     clean_resume_dataset()
     
 

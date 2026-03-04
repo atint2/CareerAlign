@@ -19,14 +19,6 @@ def reduce_dimensions_umap(embeddings):
     reduced = reducer.fit_transform(embeddings)
     return reduced
 
-def reduce_dimensions_pca(embeddings):
-    # Standardize embeddings before PCA
-    scaler = StandardScaler()
-    standardized_embeddings = scaler.fit_transform(embeddings)
-    reducer = PCA(**PCA_PARAMS)
-    reduced = reducer.fit_transform(standardized_embeddings)
-    return reduced
-
 def save_reduced_job_embeddings(embedding_ids: list[int], reduced_embeddings: np.ndarray, model_version: str, reduction_method: str, db_session):
     """Save reduced embeddings directly to database"""
     import models
@@ -77,13 +69,8 @@ def main():
         print(f"Reducing {len(job_embeddings_embeddings)} job embeddings using UMAP...")
         umap_embeddings = reduce_dimensions_umap(job_embeddings_embeddings)
 
-        print(f"Reducing {len(job_embeddings_embeddings)} job embeddings using PCA...")
-        pca_embeddings = reduce_dimensions_pca(job_embeddings_embeddings)
-
         print("Saving UMAP-reduced embeddings to database...")
         save_reduced_job_embeddings(job_embedding_ids, umap_embeddings, EMBEDDING_MODEL, "UMAP", db_session)
-        # print("Saving PCA-reduced embeddings to database...")
-        # save_reduced_job_embeddings(job_embedding_ids, pca_embeddings, EMBEDDING_MODEL, "PCA", db_session)
 
     except Exception as e:
         print("Exception reducing job embeddings and saving to database:", e)

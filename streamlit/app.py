@@ -54,8 +54,24 @@ if st.button("Generate Career Recommendations"):
             for job in data["sbert_matches"]:
                 st.write(job["title"], job["similarity"])
 
-            # st.subheader("AI Career Insights")
-            # st.write(data["insights"])
+            st.subheader("AI Career Insights")
+            insights = data.get("insights")
+
+            if insights:
+                st.subheader("Recommended Role")
+                st.write(insights["recommended_job_title"])
+
+                st.subheader("Confidence Score")
+                st.write(f"{insights['confidence_score']}%")
+
+                st.subheader("Why This Matches")
+                st.write(insights["match_summary"])
+
+                if insights.get("alternative_role"):
+                    st.subheader("Better Fit Suggestion")
+                    st.write(insights["alternative_role"])
+            else:
+                st.warning("AI insights unavailable.")
 
         else:
             st.error(f"Backend error: {response.status_code}")
