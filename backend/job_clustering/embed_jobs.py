@@ -4,7 +4,6 @@ import backend.models as models
 from backend.config import EMBEDDING_MODEL
 from backend.services.sbert_embedder import SBERTEmbeddingService
 import asyncio
-import os
 
 async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_version: str, db_session):
     # Use endpoint in main.py to save embeddings
@@ -42,5 +41,4 @@ async def main():
         print("Exception embedding job postings and saving to database:", e)
 
 if __name__ == "__main__":
-  print(os.getcwd())
   asyncio.run(main())

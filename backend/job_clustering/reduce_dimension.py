@@ -1,18 +1,9 @@
 import umap
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import numpy as np
 from backend.config import EMBEDDING_MODEL
 from backend.config import UMAP_PARAMS
-from backend.config import PCA_PARAMS 
-from pathlib import Path
-import sys
-
-def setup_backend_imports():
-	# Ensure backend/ is on sys.path so its modules import as top-level modules
-	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / "backend"
-	sys.path.insert(0, str(backend_dir))
+import backend.database as database
+import backend.models as models
 
 def reduce_dimensions_umap(embeddings):
     reducer = umap.UMAP(**UMAP_PARAMS)
@@ -49,14 +40,6 @@ def save_reduced_job_embeddings(embedding_ids: list[int], reduced_embeddings: np
     print(f"Saved {len(embedding_ids)} reduced job embeddings to the database.")
 
 def main():
-    setup_backend_imports()
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-
     SessionLocal = database.SessionLocal
     # Reduce job embeddings with UMAP and save to database
     db_session = SessionLocal()

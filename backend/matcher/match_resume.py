@@ -184,7 +184,7 @@ def match_resume(resume_text: str, db_session):
     # Generate insights using LLM
     insights_text = generate_resume_insights(prompt)
     print(insights_text)
-    insights = json.loads(insights_text) if insights_text else {}
+    insights = json.loads(insights_text)
 
     return {
         "tfidf_matches": top_jobs_tfidf,
