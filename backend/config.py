@@ -12,13 +12,6 @@ UMAP_PARAMS = {
     "tqdm_kwds": {'colour': 'green'}
 }
 
-# For PCA dimensionality reduction
-PCA_PARAMS = {
-    "n_components": 10,
-    'svd_solver': 'randomized',
-    "random_state": 42,
-}
-
 # For HDBSCAN clustering
 HDBSCAN_PARAMS = {
     "min_cluster_size": 40,
