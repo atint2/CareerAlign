@@ -168,8 +168,8 @@ def main():
 
         for cid, count in cluster_counts.items():
             existing = (
-                db_session.query(models.Cluster)
-                .filter(models.Cluster.cluster_id == int(cid))
+                db_session.query(models.ClusterDupe)
+                .filter(models.ClusterDupe.cluster_id == int(cid))
                 .one_or_none()
             )
 
@@ -178,7 +178,7 @@ def main():
                 existing.num_postings = count
             else:
                 # Create new cluster row
-                new_cluster = models.Cluster(
+                new_cluster = models.ClusterDupe(
                     cluster_id=int(cid),
                     cluster_desc=None,   # fill later with LLM
                     num_postings=count,
