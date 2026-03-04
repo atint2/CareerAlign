@@ -12,12 +12,7 @@ def reduce_dimensions_umap(embeddings):
 
 def save_reduced_job_embeddings(embedding_ids: list[int], reduced_embeddings: np.ndarray, model_version: str, reduction_method: str, db_session):
     """Save reduced embeddings directly to database"""
-    import models
 
-    # Check that table exists before trying to save
-    if not db_session.query(models.ReducedEmbedding).first():
-        print("ReducedEmbedding table does not exist. Cannot save reduced embeddings.")
-        return
     # Check that table is empty before trying to save
     if db_session.query(models.ReducedEmbedding).first():
         print("ReducedEmbedding table is not empty. Skipping save to avoid duplicates.")

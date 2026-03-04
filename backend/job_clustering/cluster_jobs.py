@@ -1,17 +1,12 @@
 import hdbscan 
 from backend.config import HDBSCAN_PARAMS 
+import backend.database as database
+import backend.models as models
 from collections import Counter
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np 
-from pathlib import Path 
-import sys 
 
-def setup_backend_imports(): 
-    # Ensure backend/ is on sys.path so its modules import as top-level modules 
-    root = Path(__file__).resolve().parents[2] 
-    backend_dir = root / "backend" 
-    sys.path.insert(0, str(backend_dir)) 
  
 def cluster_jobs_hdbscan(reduced_embeddings): 
     if len(reduced_embeddings) == 0: 
@@ -95,14 +90,6 @@ def merge_similar_clusters(centroids, labels, threshold=0.95):
     return new_labels
 
 def main(): 
-    setup_backend_imports() 
-    try: 
-        import database 
-        import models 
-    except Exception as e: 
-        print("Exception importing backend modules:", e) 
-        return 
-
     SessionLocal = database.SessionLocal 
     # Retrieve reduced embeddings from database and cluster them 
     db_session = SessionLocal() 
@@ -168,8 +155,8 @@ def main():
 
         for cid, count in cluster_counts.items():
             existing = (
-                db_session.query(models.ClusterDupe)
-                .filter(models.ClusterDupe.cluster_id == int(cid))
+                db_session.query(models.Cluster)
+                .filter(models.Cluster.cluster_id == int(cid))
                 .one_or_none()
             )
 
@@ -178,9 +165,9 @@ def main():
                 existing.num_postings = count
             else:
                 # Create new cluster row
-                new_cluster = models.ClusterDupe(
+                new_cluster = models.Cluster(
                     cluster_id=int(cid),
-                    cluster_desc=None,   # fill later with LLM
+                    general_job_desc_raw=None,   # fill later with LLM
                     num_postings=count,
                 )
                 db_session.add(new_cluster)
