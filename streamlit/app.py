@@ -35,48 +35,47 @@ st.markdown("""
     """, unsafe_allow_html=True
 )
 
-# Helper function for rendering match sections with progress bars
+def get_match_badge(similarity_percent, strong_threshold=70, moderate_threshold=40):
+    """
+    Returns a dict with match classification info: label, color, css_class.
+    """
+    if similarity_percent >= strong_threshold:
+        return {"label": "Strong", "color": "#16a34a", "css_class": "strong-match"}
+    elif similarity_percent >= moderate_threshold:
+        return {"label": "Moderate", "color": "#eab308", "css_class": "moderate-match"}
+    else:
+        return {"label": "Weak", "color": "#f97316", "css_class": "weak-match"}
+
 def render_match_section(title, matches, strong_threshold=70, moderate_threshold=40):
+    """
+    Helper function for rendering match sections with progress bars
+    """
     st.subheader(title)
 
     for job in matches:
         similarity_percent = int(job["similarity"] * 100)
-
-        # Determine classification
-        if similarity_percent >= strong_threshold:
-            match_label = "Strong"
-            css_class = "strong-match"
-            badge_color = "#16a34a"
-        elif similarity_percent >= moderate_threshold:
-            match_label = "Moderate"
-            css_class = "moderate-match"
-            badge_color = "#eab308"
-        else:
-            match_label = "Weak"
-            css_class = "weak-match"
-            badge_color = "#f97316"
+        badge = get_match_badge(similarity_percent, strong_threshold, moderate_threshold)
 
         with st.expander(
-            f"{job['title']} — {similarity_percent}% ({match_label})"
+            f"{job['title']} — {similarity_percent}% ({badge['label']})"
         ):
             # Badge
-            st.markdown(
-                f"""
+            st.markdown(f"""
                 <div style="
                     display:inline-block;
                     padding:6px 12px;
                     border-radius:8px;
-                    background-color:{badge_color};
+                    background-color:{badge['color']};
                     color:white;
                     font-weight:600;">
-                    {match_label} Match
+                    {badge['label']} Match
                 </div>
-                """,
+                """, 
                 unsafe_allow_html=True
             )
 
             # Colored progress bar wrapper
-            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
+            st.markdown(f'<div class="{badge['css_class']}">', unsafe_allow_html=True)
             st.progress(similarity_percent / 100)
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -185,9 +184,67 @@ if st.button("Test Custom Job Description"):
 
         if response.status_code == 200:
             data = response.json()
+            sbert_similarity = int(data['sbert_matches'][0]['similarity'] * 100)
+            tfidf_similarity = int(data['tfidf_matches'][0]['similarity'] * 100)
+
             st.write("Similarity Score with Custom Job Description:")
-            st.write(f"{data['sbert_matches'][0]['similarity'] * 100:.2f}% (SBERT)")
-            st.write(f"{data['tfidf_matches'][0]['similarity'] * 100:.2f}% (TF-IDF)")
+            
+            # SBERT
+            sbert_badge = get_match_badge(sbert_similarity, 70, 40)
+
+            st.title(f"{sbert_similarity}% (SBERT)")
+            # Badge
+            st.markdown(f"""
+                <div style="
+                    display:inline-block;
+                    padding:6px 12px;
+                    border-radius:8px;
+                    background-color:{sbert_badge['color']};
+                    color:white;
+                    font-weight:600;">
+                    {sbert_badge['label']} Match
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            # Colored progress bar wrapper
+            st.markdown(f'<div class="{sbert_badge['css_class']}">', unsafe_allow_html=True)
+            st.progress(sbert_similarity / 100)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            sbert_top_keywords = data['sbert_matches'][0]['top_keywords']
+            if sbert_top_keywords:
+                st.write("### Top Keywords in Job Description Relevant to Your Resume")
+                st.write(", ".join(sbert_top_keywords))
+
+            # TF-IDF
+            tfidf_badge = get_match_badge(tfidf_similarity, 30, 10)
+            
+            st.title(f"{tfidf_similarity}% (TF-IDF)")
+            # Badge
+            st.markdown(f"""
+                <div style="
+                    display:inline-block;
+                    padding:6px 12px;
+                    border-radius:8px;
+                    background-color:{tfidf_badge['color']};
+                    color:white;
+                    font-weight:600;">
+                    {tfidf_badge['label']} Match
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            # Colored progress bar wrapper
+            st.markdown(f'<div class="{tfidf_badge['css_class']}">', unsafe_allow_html=True)
+            st.progress(tfidf_similarity / 100)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            tfidf_top_keywords = data['tfidf_matches'][0]['top_keywords']
+            if tfidf_top_keywords:
+                st.write("### Top Keywords in Job Description Relevant to Your Resume")
+                st.write(", ".join(tfidf_top_keywords))
+
         else:
             st.error(f"Backend error: {response.status_code}")
             st.write(response.text)

@@ -21,7 +21,7 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
         similarity = cosine_similarity(resume_vector, job_desc_vector).flatten()[0]
         top_keywords = find_top_keywords(job_desc_text, resume_text)
         return similarity, top_keywords
-
+        
     # Load all job embeddings from cluster_embeddings table
     job_embeddings = db_session.query(models.ClusterEmbeddingTFIDF).all()
     if not job_embeddings:
