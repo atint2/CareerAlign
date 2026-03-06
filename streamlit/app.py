@@ -104,7 +104,6 @@ if st.button("Generate Career Recommendations"):
         # Read content of resume
         if uploaded_file.name.endswith(".pdf"):
             resume_text = read_pdf(uploaded_file)
-
         else:
             resume_text = read_docx(uploaded_file)
 
