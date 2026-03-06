@@ -1,16 +1,8 @@
 import pickle
-from tf_idf_embedder import TFIDFEmbeddingService
-from pathlib import Path
-import sys
-
-def setup_backend_imports():
-	# Ensure backend/ is on sys.path so its modules import as top-level modules
-	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / "backend"
-	sys.path.insert(0, str(backend_dir))
+from backend.services.tf_idf_embedder import TFIDFEmbeddingService
+from sklearn.metrics.pairwise import cosine_similarity
 
 def fit_and_save_vectorizer():
-    setup_backend_imports()
     try:
         import database
         import models
@@ -40,6 +32,39 @@ def fit_and_save_vectorizer():
 
     finally:
         db_session.close()
+
+def load_vectorizer(path="tfidf_vectorizer.pkl"):
+    with open(path, "rb") as f:
+        vectorizer = pickle.load(f)
+    # Wrap into your embedding service
+    from backend.services.tf_idf_embedder import TFIDFEmbeddingService
+    embedding_service = TFIDFEmbeddingService()
+    embedding_service.vectorizer = vectorizer
+    return embedding_service
+
+def find_top_keywords(job_desc, resume_text, top_k=20):
+    """Find top keywords in job description that are most relevant to the resume."""
+    
+    embedding_service = load_vectorizer()
+    vectorizer = embedding_service.vectorizer
+
+    job_desc_vec = vectorizer.transform([job_desc])
+    resume_vec = vectorizer.transform([resume_text])
+
+    # Element-wise multiply to get shared importance
+    shared_scores = job_desc_vec.multiply(resume_vec)
+
+    # Convert to array
+    scores = shared_scores.toarray().flatten()
+
+    feature_names = vectorizer.get_feature_names_out()
+
+    # Get top scoring features
+    top_indices = scores.argsort()[-top_k:][::-1]
+
+    top_keywords = [feature_names[idx] for idx in top_indices if scores[idx] > 0]
+
+    return top_keywords
 
 if __name__ == "__main__":
     fit_and_save_vectorizer()
