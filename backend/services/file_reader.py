@@ -1,9 +1,17 @@
-from pathlib import Path
-import sys
-import os
 import pdfplumber
+import pymupdf4llm
 from docx import Document
-    
+
+"""
+This module provides functions to read and extract text from PDF and DOCX files. 
+It uses pdfplumber for PDFs and python-docx for DOCX files. 
+The extracted text is returned as a single string, which can then be processed further by the application.
+"""    
+
+def read_pdf_with_mupdf(file):
+    md_text = pymupdf4llm.to_markdown(file)
+    return md_text
+
 def read_pdf(file):
     text_parts = []
 

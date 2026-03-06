@@ -139,6 +139,7 @@ async def create_reduced_embedding(ReducedEmbedding: ReducedEmbeddingBase, db: d
 
 class ResumeMatchRequest(BaseModel):
     resume_text: str
+    job_desc: Optional[str] = None
 
 @app.post("/api/match-resume/")
 async def match_resume_endpoint(
@@ -146,7 +147,7 @@ async def match_resume_endpoint(
     db: db_dependency
 ):
     try:
-        results = match_resume(request.resume_text, db)
+        results = match_resume(request.resume_text, request.job_desc, db)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

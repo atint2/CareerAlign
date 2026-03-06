@@ -83,6 +83,10 @@ def render_match_section(title, matches, strong_threshold=70, moderate_threshold
             st.write("### Job Description")
             st.write(job["description"])
 
+            st.write("### Top Keywords in Job Description Relevant to Your Resume")
+            if job.get("top_keywords"):
+                st.write(", ".join(job["top_keywords"]))
+
 # Main app interface
 st.title("CareerAlign: Your AI-Powered Career Path Finder")
 st.write("Find your ideal career path with CareerAlign! Our AI-powered platform analyzes your resume to recommend the best career options for you. Start your journey towards a fulfilling career today!")
@@ -150,10 +154,43 @@ if st.button("Generate Career Recommendations"):
                     st.write(insights["alternative_role"])
             else:
                 st.warning("AI insights unavailable.")
-
         else:
             st.error(f"Backend error: {response.status_code}")
             st.write(response.text)
-
     else:
         st.error("Please upload your resume to get recommendations.")
+
+# Allow users to enter a job description directly for testing
+st.write("---")
+st.subheader("Test with Custom Job Description")
+# Create a file uploader for the resume
+custom_job_desc = st.text_area("Enter a job description to test the matcher:", height=300)
+if st.button("Test Custom Job Description"):
+    if uploaded_file is not None and custom_job_desc.strip():
+        st.info("Analyzing your resume and generating recommendations...")
+
+        # Read content of resume
+        if uploaded_file.name.endswith(".pdf"):
+            resume_text = read_pdf(uploaded_file)
+
+        else:
+            resume_text = read_docx(uploaded_file)
+    
+        st.info("Testing matcher with custom job description...")
+
+        # Generate results using matcher
+        response = requests.post(
+        "http://localhost:8000/api/match-resume/",
+        json={"resume_text": resume_text, "job_desc": custom_job_desc}
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            st.write("Similarity Score with Custom Job Description:")
+            st.write(f"{data['sbert_matches'][0]['similarity'] * 100:.2f}% (SBERT)")
+            st.write(f"{data['tfidf_matches'][0]['similarity'] * 100:.2f}% (TF-IDF)")
+        else:
+            st.error(f"Backend error: {response.status_code}")
+            st.write(response.text)
+    else:
+        st.error("Please enter a job description to test.")
