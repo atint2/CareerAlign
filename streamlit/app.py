@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.services.file_reader import read_pdf, read_docx
+from backend.services.file_reader import parse_with_llama
 
 # Setup the page configuration
 st.set_page_config(
@@ -101,10 +101,7 @@ if st.button("Generate Career Recommendations"):
         st.info("Analyzing your resume and generating recommendations...")
 
         # Read content of resume
-        if uploaded_file.name.endswith(".pdf"):
-            resume_text = read_pdf(uploaded_file)
-        else:
-            resume_text = read_docx(uploaded_file)
+        resume_text = parse_with_llama(uploaded_file)
 
         # Generate results using matcher
         response = requests.post(
@@ -150,6 +147,11 @@ if st.button("Generate Career Recommendations"):
                 if insights.get("alternative_role"):
                     st.subheader("Better Fit Suggestion")
                     st.write(insights["alternative_role"])
+
+                if insights.get("alternative_role_suggestions"):
+                    st.subheader("Why This Might be Better")
+                    st.write(insights["alternative_role_suggestions"])
+
             else:
                 st.warning("AI insights unavailable.")
         else:
