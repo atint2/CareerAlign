@@ -109,12 +109,17 @@ def create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert):
 
         Instructions:
         - Choose ONLY one job from the provided list.
-        - Do NOT invent new job titles.
         - Base your reasoning on skills, responsibilities, and experience alignment.
-        - If there is a clear match, provide a confidence score between 0 and 100.
+        - If there is a clear match, provide a confidence score between 0 and 100. Follow this scoring logic:
+            90-100: Nearly identical titles, 90%+ skill overlap, and sufficient years of experience.
+            70-89: Strong match, but perhaps missing one "nice-to-have" skill or coming from a slightly different industry.
+            50-69: Partial match; the candidate has the foundation but would require significant upskilling.
+            Below 50: Major gaps in core requirements.
+        - If confidence_score is below 70, you MUST suggest an alternative role under "alternative_role" that better fits the candidate's profile based on their resume. This is REQUIRED, not optional.
+        - If confidence_score is 70 or above, set "alternative_role" to null.
         - Provide a 2-4 sentence explanation referencing specific skills or experiences that led to your recommendation.
-        - If the resume has significant gaps for all jobs within the list, you may suggest an alternative role that better fits the candidate's profile, but only if it's clearly supported by the resume content.
-
+        - If you assign an alternative role, you MUST give an additional 2-4 sentence explanation for the alternative match under "alternative_role_suggestions". If you do not provide an alternative role, set "alternative_role_suggestions" to null.
+        
         Return ONLY valid JSON.
         No explanations outside JSON.
         No markdown formatting.
@@ -127,7 +132,8 @@ def create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert):
         "confidence_score": number (0-100),
         "match_summary": "2-4 sentence explanation referencing specific skills",
         "improvement_suggestions": "Specific skill gaps or improvements",
-        "alternative_role": "string or null"
+        "alternative_role": "string or null",
+        "alternative_role_suggestions": "string or null"
         }}
 
         RESUME: {resume_text} 
