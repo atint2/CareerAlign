@@ -9,6 +9,10 @@ import tempfile
 import os
 import nest_asyncio
 
+from dotenv import load_dotenv
+load_dotenv()
+LLAMA_API_KEY = os.getenv("LLAMA_API_KEY")
+
 nest_asyncio.apply()
 
 def parse_with_llama(file):
