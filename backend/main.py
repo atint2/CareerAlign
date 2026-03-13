@@ -6,6 +6,7 @@ from backend import models
 from backend.database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from backend.matcher.match_resume import match_resume
+from backend.matcher.hybrid_matcher import hybrid_match
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -140,14 +141,14 @@ async def create_reduced_embedding(ReducedEmbedding: ReducedEmbeddingBase, db: d
 class ResumeMatchRequest(BaseModel):
     resume_text: str
     job_desc: Optional[str] = None
-
-@app.post("/api/match-resume/")
-async def match_resume_endpoint(
+    
+@app.post("/api/hybrid-match-resume/")
+async def hybrid_match_resume_endpoint(
     request: ResumeMatchRequest,
     db: db_dependency
 ):
     try:
-        results = match_resume(request.resume_text, request.job_desc, db)
+        results = hybrid_match(request.resume_text, request.job_desc, db)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
