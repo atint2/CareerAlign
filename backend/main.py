@@ -41,9 +41,13 @@ class PostingBase(BaseModel):
     formatted_experience_level: Optional[str] = None
     cluster_id: Optional[int] = None
 
-class EmbeddingBase(BaseModel):
+class SBERTEmbeddingBase(BaseModel):
     embedding: List[float]
     model_version: str
+    job_posting_id: int
+
+class TFIDFEmbeddingBase(BaseModel):
+    embedding: List[float]
     job_posting_id: int
 
 class ReducedEmbeddingBase(BaseModel):
@@ -110,15 +114,15 @@ async def create_job_posting(JobPosting: PostingBase, db: db_dependency):
     return db_posting
     
 # Endpoint to retrieve all job embeddings
-@app.get('/api/embeddings/', response_model=List[EmbeddingBase])
+@app.get('/api/embeddings/', response_model=List[SBERTEmbeddingBase])
 async def get_job_embeddings(db: db_dependency):
-    embeddings = db.query(models.JobEmbedding).all()
+    embeddings = db.query(models.JobEmbeddingSBERT).all()
     return embeddings
 
 # Endpoint to create a new job embedding
 @app.post('/api/embeddings/')
-async def create_job_posting_embedding(JobEmbedding: EmbeddingBase, db: db_dependency):
-    db_embedding = models.JobEmbedding(embedding=JobEmbedding.embedding,
+async def create_job_posting_embedding(JobEmbedding: SBERTEmbeddingBase, db: db_dependency):
+    db_embedding = models.JobEmbeddingSBERT(embedding=JobEmbedding.embedding,
                                        model_version=JobEmbedding.model_version,
                                        job_posting_id=JobEmbedding.job_posting_id)
     db.add(db_embedding)
@@ -141,7 +145,7 @@ async def create_reduced_embedding(ReducedEmbedding: ReducedEmbeddingBase, db: d
 class ResumeMatchRequest(BaseModel):
     resume_text: str
     job_desc: Optional[str] = None
-    
+
 @app.post("/api/hybrid-match-resume/")
 async def hybrid_match_resume_endpoint(
     request: ResumeMatchRequest,
