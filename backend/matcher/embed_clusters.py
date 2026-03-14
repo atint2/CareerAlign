@@ -1,12 +1,7 @@
-from pathlib import Path
-import sys
 import pickle
-
-def setup_backend_imports(path="backend"):
-    # Ensure backend/ is on sys.path so its modules import as top-level modules
-    root = Path(__file__).resolve().parents[2]
-    backend_dir = root / path
-    sys.path.insert(0, str(backend_dir))
+from backend.services.tf_idf_embedder import TFIDFEmbeddingService
+from backend.services.sbert_embedder import SBERTEmbeddingService
+from backend import database, models
 
 def load_vectorizer(path="tfidf_vectorizer.pkl"):
     """
@@ -16,22 +11,11 @@ def load_vectorizer(path="tfidf_vectorizer.pkl"):
         vectorizer = pickle.load(f)
 
     # Wrap into the embedding service
-    setup_backend_imports("backend/services")
-    from tf_idf_embedder import TFIDFEmbeddingService
     embedding_service = TFIDFEmbeddingService()
     embedding_service.vectorizer = vectorizer
     return embedding_service
 
 def main():
-    setup_backend_imports()
-
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-
     # Initialize database session
     SessionLocal = database.SessionLocal
     db_session = SessionLocal()
@@ -80,8 +64,6 @@ def main():
     
     # Embed job descriptions using SBERT and save to DB
     try:
-        setup_backend_imports("backend/services")
-        from sbert_embedder import SBERTEmbeddingService
         embedding_service = SBERTEmbeddingService()
 
         # Check for existing cluster embeddings to avoid duplicates

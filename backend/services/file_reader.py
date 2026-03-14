@@ -32,7 +32,6 @@ def parse_with_llama(file):
 
         if documents:
             file_contents = " ".join([doc.get_content() for doc in documents])
-            print(file_contents)
         else:
             file_contents = ""
             print("No content extracted.")

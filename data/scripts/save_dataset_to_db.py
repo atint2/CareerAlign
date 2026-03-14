@@ -72,7 +72,7 @@ def save_job_postings_to_db(dataset_filepath):
 			tfidf_prep.clean_text_tfidf
 		)
 
-		print("Encoding SBERT embeddings...")
+		print("Cleaning SBERT text...")
 		df_new["desc_sbert"] = descriptions.progress_apply(
 			sbert_prep.clean_text_sbert
 		)
