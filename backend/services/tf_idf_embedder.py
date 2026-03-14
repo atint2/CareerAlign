@@ -3,7 +3,7 @@ Service for embedding documents using TF-IDF
 """
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction import text
+from backend.config import CUSTOM_STOPWORDS
 
 class TFIDFEmbeddingService:
     """
@@ -11,12 +11,8 @@ class TFIDFEmbeddingService:
     """
 
     def __init__(self):
-        custom_stop_words = list(
-            text.ENGLISH_STOP_WORDS.union({"occasionally", "usually"})
-        )
-
         self.vectorizer = TfidfVectorizer(
-            stop_words=custom_stop_words,
+            stop_words=CUSTOM_STOPWORDS,
             max_df=0.8,
             min_df=5,
             ngram_range=(1, 2),
