@@ -2,9 +2,7 @@ import re
 import spacy
 import nltk
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 from nltk.stem.porter import PorterStemmer
-import json
 
 # Download required NLTK data (run once)
 #nltk.download('stopwords')

@@ -19,3 +19,15 @@ HDBSCAN_PARAMS = {
     "metric": "euclidean",
     "cluster_selection_method": "eom",
 }
+
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+# Define custom stopwords for TF-IDF vectorizer
+CUSTOM_STOPWORDS = ENGLISH_STOP_WORDS | {
+    "new", "work", "working", "using", "use", "used",
+    "experience", "ability", "strong", "good", "knowledge",
+    "team", "within", "across", "including", "related",
+    "role", "position", "job", "company", "opportunity",
+    "responsibility", "requires", "contribute", "seeking", "based",
+    "demonstrate", "demonstrating", "demonstrates", "valued",
+    "values", "value"
+}

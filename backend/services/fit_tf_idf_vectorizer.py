@@ -1,17 +1,8 @@
 import pickle
 from backend.services.tf_idf_embedder import TFIDFEmbeddingService
 from backend import database, models
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+from backend.config import CUSTOM_STOPWORDS
 import numpy as np
-
-# Define additional stopwords
-CUSTOM_STOPWORDS = ENGLISH_STOP_WORDS | {
-    "new", "work", "working", "using", "use", "used",
-    "experience", "ability", "strong", "good", "knowledge",
-    "team", "within", "across", "including", "related",
-    "role", "position", "job", "company", "opportunity",
-    "responsibility", "requires", "contribute", "seeking", "based"
-}
 
 def fit_and_save_vectorizer():
     # Initialize database session
