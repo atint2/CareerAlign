@@ -2,14 +2,7 @@ import numpy as np
 from collections import Counter
 from sklearn.metrics import davies_bouldin_score, silhouette_score, calinski_harabasz_score
 from sklearn.metrics.pairwise import cosine_similarity
-from pathlib import Path 
-import sys 
-
-def setup_backend_imports(): 
-    # Ensure backend/ is on sys.path so its modules import as top-level modules 
-    root = Path(__file__).resolve().parents[2] 
-    backend_dir = root / "backend" 
-    sys.path.insert(0, str(backend_dir)) 
+from backend import database, models
 
 def mean_intra_cluster_similarity(embeddings, labels):
     """
@@ -38,17 +31,11 @@ def mean_intra_cluster_similarity(embeddings, labels):
     return float(np.mean(similarities))
 
 def main():
-    setup_backend_imports()
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-    
+    # Create new database session instance
     SessionLocal = database.SessionLocal
-    # Retrieve job postings and their cluster assignments from database and evaluate cluster quality
     db_session = SessionLocal()
+
+    # Retrieve job postings and their cluster assignments from database and evaluate cluster quality
     try:
         # Retrieve job postings with their cluster IDs
         rows = (

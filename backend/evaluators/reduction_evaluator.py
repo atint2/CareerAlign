@@ -1,5 +1,4 @@
-import backend.database as database
-import backend.models as models
+from backend import database, models
 from sklearn.manifold import trustworthiness as calc_trustworthiness
 import numpy as np
 
@@ -24,9 +23,11 @@ def evaluate_reduction_quality(original_embeddings, reduced_embeddings, method_n
     print(f"Trustworthiness of {method_name}: {trust_score:.4f} (evaluated on {len(original_sample)} samples)")
 
 def main():
+    # Create new database session instance
     SessionLocal = database.SessionLocal
-    # Retrieve reduced embeddings from database and evaluate quality
     db_session = SessionLocal()
+
+    # Retrieve reduced embeddings from database and evaluate quality
     try:
         # First retrieve id and embedding for all job embeddings in database (nonreduced)
         job_embeddings = db_session.query(models.JobEmbeddingSBERT).all()
