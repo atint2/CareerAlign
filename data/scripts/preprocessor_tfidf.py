@@ -74,10 +74,12 @@ class TFIDFPreprocessor:
         filtered_text = re.sub(r'CPLUSPLUS', 'C++', filtered_text)
         filtered_text = re.sub(r'CSHARP', 'C#', filtered_text)
 
-        # Stemming
+        # Only uncomment when posting resumes and job postings to database
+        # # Stemming
         # stemmed_words = [self.stem_word(word) for word in filtered_text.split()]
         # filtered_text = " ".join(stemmed_words)
 
+        # Only comment this out when posting resumes and job postings to database
         # Lemmatization
         nlp = spacy.load('en_core_web_sm', disable=["parser", "ner"])
         doc = nlp(filtered_text)

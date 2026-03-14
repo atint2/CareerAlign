@@ -16,21 +16,31 @@ class JobPosting(Base):
     formatted_experience_level = Column(String, nullable=True)
     cluster_id = Column(Integer, nullable=True)
 
-class JobEmbedding(Base):
-    __tablename__ = "job_embeddings"
+# Job posting embeddings (SBERT)
+class JobEmbeddingSBERT(Base):
+    __tablename__ = "job_embeddings_sbert"
 
     id = Column(Integer, autoincrement=True, primary_key=True, index=True)
     embedding = Column(Vector(384), nullable=False)
     model_version = Column(String, nullable=False)
     job_posting_id = Column(Integer, ForeignKey("job_postings.id", ondelete="CASCADE"), nullable=False, index=True)
 
+# Job posting embeddings (TF-IDF)
+class JobEmbeddingTFIDF(Base):
+    __tablename__ = "job_embeddings_tfidf"
+
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True)
+    embedding = Column(Vector(5000), nullable=False)
+    job_posting_id = Column(Integer, ForeignKey("job_postings.id", ondelete="CASCADE"), nullable=False, index=True)
+
+# Job posting reduced embeddings (USING SBERT embeddings)
 class ReducedEmbedding(Base):
     __tablename__ = "reduced_job_embeddings"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     reduced_embedding = Column(Vector(15), nullable=False)
     model_version = Column(String, nullable=False)
-    job_embedding_id = Column(Integer, ForeignKey("job_embeddings.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_embedding_id = Column(Integer, ForeignKey("job_embeddings_sbert.id", ondelete="CASCADE"), nullable=False, index=True)
     reduction_method = Column(String, nullable=False)
 
 class Cluster(Base):

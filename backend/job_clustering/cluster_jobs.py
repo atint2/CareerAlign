@@ -102,12 +102,12 @@ def main():
                 models.JobPosting.desc_sbert
             ) 
             .join( 
-                models.JobEmbedding, 
-                models.JobEmbedding.id == models.ReducedEmbedding.job_embedding_id, 
+                models.JobEmbeddingSBERT, 
+                models.JobEmbeddingSBERT.id == models.ReducedEmbedding.job_embedding_id, 
             ) 
             .join( 
                 models.JobPosting, 
-                models.JobPosting.id == models.JobEmbedding.job_posting_id, 
+                models.JobPosting.id == models.JobEmbeddingSBERT.job_posting_id, 
             ) 
             .order_by(models.ReducedEmbedding.job_embedding_id) 
             .all() 

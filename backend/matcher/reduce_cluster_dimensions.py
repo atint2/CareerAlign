@@ -1,13 +1,7 @@
 import umap
 import numpy as np
-from pathlib import Path
-import sys
-
-def setup_backend_imports(path="backend"):
-	# Ensure backend/ is on sys.path so its modules import as top-level modules
-	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / path
-	sys.path.insert(0, str(backend_dir))
+from backend import database, models
+from backend.config import EMBEDDING_MODEL, UMAP_PARAMS
 
 def reduce_dimensions_umap(embeddings, UMAP_PARAMS):
     reducer = umap.UMAP(**UMAP_PARAMS)
@@ -16,7 +10,6 @@ def reduce_dimensions_umap(embeddings, UMAP_PARAMS):
 
 def save_reduced_job_embeddings(cluster_embedding_ids: list[int], reduced_embeddings: np.ndarray, model_version: str, reduction_method: str, db_session):
     """Save reduced embeddings directly to database"""
-    import models
     
     for cluster_embedding_id, reduced_embedding in zip(cluster_embedding_ids, reduced_embeddings):
         # Ensure reduced_embedding matches Vector(15) size
@@ -35,15 +28,7 @@ def save_reduced_job_embeddings(cluster_embedding_ids: list[int], reduced_embedd
     print(f"Saved {len(cluster_embedding_ids)} reduced cluster embeddings to the database.")
 
 def main():
-    setup_backend_imports()
-    try:
-        import database
-        import models
-        from config import EMBEDDING_MODEL, UMAP_PARAMS
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-
+    # Initialize database session
     SessionLocal = database.SessionLocal
     # Reduce cluster embeddings with UMAP and save to database
     db_session = SessionLocal()

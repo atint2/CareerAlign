@@ -29,7 +29,7 @@ def main():
     db_session = SessionLocal()
     try:
         # First retrieve id and embedding for all job embeddings in database (nonreduced)
-        job_embeddings = db_session.query(models.JobEmbedding).all()
+        job_embeddings = db_session.query(models.JobEmbeddingSBERT).all()
         job_embedding_ids = [je.id for je in job_embeddings]
         job_embeddings_embeddings = [je.embedding for je in job_embeddings]
 

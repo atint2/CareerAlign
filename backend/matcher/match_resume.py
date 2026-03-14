@@ -1,5 +1,5 @@
 from google.genai import Client
-from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords
+from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords, find_missing_keywords
 import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -20,7 +20,17 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
         job_desc_vector = embedding_service.transform([job_desc_text]).toarray()
         similarity = cosine_similarity(resume_vector, job_desc_vector).flatten()[0]
         top_keywords = find_top_keywords(job_desc_text, resume_text)
-        return similarity, top_keywords
+        missing_keywords = find_missing_keywords(job_desc_text, resume_text)
+        return [{
+            "cluster_id": "custom",
+            "title": "Custom Job Description",
+            "description": job_desc_text,
+            "similarity": float(similarity),
+            "similarity_percent": round(float(similarity) * 100, 1),
+            "snippet": job_desc_text[:200] + "...",
+            "top_keywords": top_keywords,
+            "missing_keywords": missing_keywords
+        }]
         
     # Load all job embeddings from cluster_embeddings table
     job_embeddings = db_session.query(models.ClusterEmbeddingTFIDF).all()
@@ -39,7 +49,8 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
     top_matches = []
     for idx in top_indices:
         cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
-        top_keywords = find_top_keywords(cluster.general_job_desc_tfidf, resume_text)
+        top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
+        missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
         top_matches.append({
             "cluster_id": cluster.id,
             "title": cluster.title,
@@ -47,7 +58,8 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
             "similarity": float(similarities[idx]),
             "similarity_percent": round(similarities[idx] * 100, 1),
             "snippet": cluster.general_job_desc_raw[:200] + "...",
-            "top_keywords": top_keywords
+            "top_keywords": top_keywords,
+            "missing_keywords": missing_keywords
         })
     return top_matches
 
@@ -59,7 +71,17 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         job_desc_embedding = sbert_service.embed([job_desc_text])
         similarity = cosine_similarity(resume_embedding, job_desc_embedding).flatten()[0]
         top_keywords = find_top_keywords(job_desc_text, resume_text)
-        return similarity, top_keywords
+        missing_keywords = find_missing_keywords(job_desc_text, resume_text)
+        return [{
+            "cluster_id": "custom",
+            "title": "Custom Job Description",
+            "description": job_desc_text,
+            "similarity": float(similarity),
+            "similarity_percent": round(float(similarity) * 100, 1),
+            "snippet": job_desc_text[:200] + "...",
+            "top_keywords": top_keywords,
+            "missing_keywords": missing_keywords
+        }]
 
     # Load all cluster embeddings from database
     cluster_embeddings = db_session.query(models.ClusterEmbeddingSBERT).all()
@@ -78,7 +100,8 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
     top_matches = []
     for idx in top_indices:
         cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
-        top_keywords = find_top_keywords(cluster.general_job_desc_tfidf, resume_text)
+        top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
+        missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
         top_matches.append({
             "cluster_id": cluster.id,
             "title": cluster.title,
@@ -86,7 +109,8 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
             "similarity": float(similarities[idx]),
             "similarity_percent": round(similarities[idx] * 100, 1),
             "snippet": cluster.general_job_desc_raw[:200] + "...",
-            "top_keywords": top_keywords 
+            "top_keywords": top_keywords,
+            "missing_keywords": missing_keywords 
         })
     return top_matches
 
@@ -231,15 +255,15 @@ def match_resume(resume_text: str, job_desc: str | None, db_session):
     # Find matches using SBERT
     top_jobs_sbert = find_top_job_matches_sbert(resume_text_sbert, sbert_service, db_session, models, top_n=5)
 
-    # # Create LLM prompt
-    # prompt = create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert)
-    # # Generate insights using LLM
-    # insights_text = generate_resume_insights(prompt)
-    # print(insights_text)
-    # insights = json.loads(insights_text)
+    # Create LLM prompt
+    prompt = create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert)
+    # Generate insights using LLM
+    insights_text = generate_resume_insights(prompt)
+    print(insights_text)
+    insights = json.loads(insights_text)
 
     return {
         "tfidf_matches": top_jobs_tfidf,
         "sbert_matches": top_jobs_sbert,
-        # "insights": insights,
+        "insights": insights,
     }

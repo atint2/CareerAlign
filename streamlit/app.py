@@ -86,6 +86,10 @@ def render_match_section(title, matches, strong_threshold=70, moderate_threshold
             if job.get("top_keywords"):
                 st.write(", ".join(job["top_keywords"]))
 
+            st.write("### Top Keywords Missing From Your Resume Relevant to Job Description")
+            if job.get("missing_keywords"):
+                st.write(", ".join(job["missing_keywords"]))
+
 # Main app interface
 st.title("CareerAlign: Your AI-Powered Career Path Finder")
 st.write("Find your ideal career path with CareerAlign! Our AI-powered platform analyzes your resume to recommend the best career options for you. Start your journey towards a fulfilling career today!")
@@ -103,10 +107,10 @@ if st.button("Generate Career Recommendations"):
         # Read content of resume
         resume_text = parse_with_llama(uploaded_file)
 
-        # Generate results using matcher
+        # Generate results using hybrid matcher
         response = requests.post(
-        "http://localhost:8000/api/match-resume/",
-        json={"resume_text": resume_text}
+            "http://localhost:8000/api/hybrid-match-resume/",
+            json={"resume_text": resume_text}
         )
 
         # Recommendation results
@@ -127,6 +131,13 @@ if st.button("Generate Career Recommendations"):
                 data["tfidf_matches"],
                 strong_threshold=30,      
                 moderate_threshold=10
+            )
+            
+            render_match_section(
+                "Hybrid Matches",
+                data["hybrid_matches"],
+                strong_threshold=50,      
+                moderate_threshold=25
             )
 
             st.subheader("AI Career Insights")
@@ -163,92 +174,50 @@ if st.button("Generate Career Recommendations"):
 # Allow users to enter a job description directly for testing
 st.write("---")
 st.subheader("Test with Custom Job Description")
+st.write("For the best results, include information such as job responsibilities, qualifications, skills, and experience required.")
 # Create a file uploader for the resume
 custom_job_desc = st.text_area("Enter a job description to test the matcher:", height=300)
 if st.button("Test Custom Job Description"):
-    if uploaded_file is not None and custom_job_desc.strip():
-        st.info("Analyzing your resume and generating recommendations...")
-
+    if uploaded_file is None:
+        st.error("Please upload your resume before testing.")
+    elif not custom_job_desc.strip():
+        st.error("Please enter a job description to test.")
+    else:
         # Read content of resume
-        if uploaded_file.name.endswith(".pdf"):
-            resume_text = read_pdf(uploaded_file)
-
-        else:
-            resume_text = read_docx(uploaded_file)
+        resume_text = parse_with_llama(uploaded_file)
     
         st.info("Testing matcher with custom job description...")
 
         # Generate results using matcher
         response = requests.post(
-        "http://localhost:8000/api/match-resume/",
+        "http://localhost:8000/api/hybrid-match-resume/",
         json={"resume_text": resume_text, "job_desc": custom_job_desc}
         )
 
         if response.status_code == 200:
             data = response.json()
-            sbert_similarity = int(data['sbert_matches'][0]['similarity'] * 100)
-            tfidf_similarity = int(data['tfidf_matches'][0]['similarity'] * 100)
-
-            st.write("Similarity Score with Custom Job Description:")
-            
-            # SBERT
-            sbert_badge = get_match_badge(sbert_similarity, 70, 40)
-
-            st.title(f"{sbert_similarity}% (SBERT)")
-            # Badge
-            st.markdown(f"""
-                <div style="
-                    display:inline-block;
-                    padding:6px 12px;
-                    border-radius:8px;
-                    background-color:{sbert_badge['color']};
-                    color:white;
-                    font-weight:600;">
-                    {sbert_badge['label']} Match
-                </div>
-                """, 
-                unsafe_allow_html=True
+ 
+            render_match_section(
+                "SBERT Match",
+                data["sbert_matches"],
+                strong_threshold=70,
+                moderate_threshold=40
             )
-            # Colored progress bar wrapper
-            st.markdown(f'<div class="{sbert_badge['css_class']}">', unsafe_allow_html=True)
-            st.progress(sbert_similarity / 100)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            sbert_top_keywords = data['sbert_matches'][0]['top_keywords']
-            if sbert_top_keywords:
-                st.write("### Top Keywords in Job Description Relevant to Your Resume")
-                st.write(", ".join(sbert_top_keywords))
-
-            # TF-IDF
-            tfidf_badge = get_match_badge(tfidf_similarity, 30, 10)
-            
-            st.title(f"{tfidf_similarity}% (TF-IDF)")
-            # Badge
-            st.markdown(f"""
-                <div style="
-                    display:inline-block;
-                    padding:6px 12px;
-                    border-radius:8px;
-                    background-color:{tfidf_badge['color']};
-                    color:white;
-                    font-weight:600;">
-                    {tfidf_badge['label']} Match
-                </div>
-                """, 
-                unsafe_allow_html=True
+ 
+            render_match_section(
+                "TF-IDF Match",
+                data["tfidf_matches"],
+                strong_threshold=30,
+                moderate_threshold=10
             )
-            # Colored progress bar wrapper
-            st.markdown(f'<div class="{tfidf_badge['css_class']}">', unsafe_allow_html=True)
-            st.progress(tfidf_similarity / 100)
-            st.markdown("</div>", unsafe_allow_html=True)
 
-            tfidf_top_keywords = data['tfidf_matches'][0]['top_keywords']
-            if tfidf_top_keywords:
-                st.write("### Top Keywords in Job Description Relevant to Your Resume")
-                st.write(", ".join(tfidf_top_keywords))
+            render_match_section(
+                "Hybrid Match",
+                data["hybrid_matches"],
+                strong_threshold=50,
+                moderate_threshold=25
+            )
 
         else:
             st.error(f"Backend error: {response.status_code}")
             st.write(response.text)
-    else:
-        st.error("Please enter a job description to test.")

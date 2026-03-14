@@ -57,12 +57,12 @@ def main():
                 models.JobPosting.cluster_id,
             )
             .join(
-                models.JobEmbedding,
-                models.JobEmbedding.id == models.ReducedEmbedding.job_embedding_id,
+                models.JobEmbeddingSBERT,
+                models.JobEmbeddingSBERT.id == models.ReducedEmbedding.job_embedding_id,
             )
             .join(
                 models.JobPosting,
-                models.JobPosting.id == models.JobEmbedding.job_posting_id,
+                models.JobPosting.id == models.JobEmbeddingSBERT.job_posting_id,
             )
             .filter(models.JobPosting.cluster_id != None)
             .all()

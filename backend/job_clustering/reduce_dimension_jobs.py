@@ -39,7 +39,7 @@ def main():
     # Reduce job embeddings with UMAP and save to database
     db_session = SessionLocal()
     try:
-        job_embeddings = db_session.query(models.JobEmbedding).all()
+        job_embeddings = db_session.query(models.JobEmbeddingSBERT).all()
         
         job_embedding_ids = [je.id for je in job_embeddings]
         job_embeddings_embeddings = [je.embedding for je in job_embeddings]
