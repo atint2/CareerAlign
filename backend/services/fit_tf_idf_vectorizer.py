@@ -1,14 +1,19 @@
 import pickle
 from backend.services.tf_idf_embedder import TFIDFEmbeddingService
-from sklearn.metrics.pairwise import cosine_similarity
+from backend import database, models
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+import numpy as np
+
+# Define additional stopwords
+CUSTOM_STOPWORDS = ENGLISH_STOP_WORDS | {
+    "new", "work", "working", "using", "use", "used",
+    "experience", "ability", "strong", "good", "knowledge",
+    "team", "within", "across", "including", "related",
+    "role", "position", "job", "company", "opportunity",
+    "responsibility", "requires", "contribute", "seeking", "based"
+}
 
 def fit_and_save_vectorizer():
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-
     # Initialize database session
     SessionLocal = database.SessionLocal
     db_session = SessionLocal()
@@ -62,9 +67,35 @@ def find_top_keywords(job_desc, resume_text, top_k=20):
     # Get top scoring features
     top_indices = scores.argsort()[-top_k:][::-1]
 
-    top_keywords = [feature_names[idx] for idx in top_indices if scores[idx] > 0]
+    top_keywords = [
+        feature_names[idx] for idx in top_indices
+        if scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
+    ]
 
     return top_keywords
+
+def find_missing_keywords(job_desc, resume_text, top_k=10):
+    """Find top keywords in job description that are absent from the resume."""
+    
+    embedding_service = load_vectorizer()
+    vectorizer = embedding_service.vectorizer
+
+    job_desc_vec = vectorizer.transform([job_desc]).toarray().flatten()
+    resume_vec = vectorizer.transform([resume_text]).toarray().flatten()
+
+    feature_names = vectorizer.get_feature_names_out()
+
+    # Keep only terms that appear in the job desc but not in the resume
+    missing_scores = np.where(resume_vec == 0, job_desc_vec, 0)
+
+    top_indices = missing_scores.argsort()[-top_k:][::-1]
+
+    missing_keywords = [
+        feature_names[idx] for idx in top_indices
+        if missing_scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
+    ]
+
+    return missing_keywords
 
 if __name__ == "__main__":
     fit_and_save_vectorizer()
