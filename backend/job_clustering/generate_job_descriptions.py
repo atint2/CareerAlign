@@ -2,6 +2,9 @@ import re
 from google import genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction import text
+from backend import database, models
+from data.scripts.preprocessor_sbert import SBERTPreprocessor
+from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from collections import defaultdict
 import numpy as np 
 from pathlib import Path 
@@ -113,15 +116,7 @@ def generate_job_description(keywords, sample_titles, sample_descriptions):
         return "Description unavailable."
 
 def main():
-    setup_backend_imports()
-
-    try:
-        import database
-        import models
-    except Exception as e:
-        print("Exception importing backend modules:", e)
-        return
-
+    # Create new database session instance
     SessionLocal = database.SessionLocal
     db_session = SessionLocal()
 
@@ -140,6 +135,10 @@ def main():
         if not rows:
             print("No clustered job postings found.")
             return
+        
+        # Initialize preprocessors
+        tfidf_prep = TFIDFPreprocessor()
+        sbert_prep = SBERTPreprocessor()
 
         texts = [r.desc_sbert or "" for r in rows]
         labels = np.array([r.cluster_id for r in rows])
@@ -159,8 +158,8 @@ def main():
             sample_descs = [r.desc_sbert for r in cluster_rows if r.desc_sbert]
 
             existing = (
-                db_session.query(models.Cluster)
-                .filter(models.Cluster.cluster_id == int(cid))
+                db_session.query(models.ClusterExperimental)
+                .filter(models.ClusterExperimental.cluster_id == int(cid))
                 .one_or_none()
             )
             if existing:
@@ -184,14 +183,20 @@ def main():
                     desc_match = re.search(r"\*\*Professional Summary:\*\*\s*(.+)", description, re.DOTALL) 
                     if desc_match: 
                         description = desc_match.group(1).strip() 
+                        # Preprocess description for TF-IDF and SBERT
+                        tfidf_description = tfidf_prep.clean_text_tfidf(description)
+                        sbert_description = sbert_prep.clean_text_sbert(description)
                     else: 
                         print(f"Warning: Could not extract description for cluster_id {cid}") 
                     
                     if description != "Description unavailable.":
                     # Save description to database
                         existing.general_job_desc_raw = description
+                        existing.general_job_desc_tfidf = tfidf_description
+                        existing.general_job_desc_sbert = sbert_description
                         existing.title = title
                         db_session.commit()
+                        print(f"Description for cid {cid} successfully saved to the database")
                     # Sleep before next iteration
                     time.sleep(30)
 
