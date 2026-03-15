@@ -29,5 +29,5 @@ CUSTOM_STOPWORDS = ENGLISH_STOP_WORDS | {
     "role", "position", "job", "company", "opportunity",
     "responsibility", "requires", "contribute", "seeking", "based",
     "demonstrate", "demonstrating", "demonstrates", "valued",
-    "values", "value"
+    "values", "value", "functioning", "ideal"
 }

@@ -3,19 +3,23 @@ from typing import Optional
 from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert
 from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords
 
+def normalize_score(score, min, max):
+    return (score - min) / (max - min)
+
 def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.65):
 
     tfidf_dict = {job["cluster_id"]: job for job in tfidf_matches}
     sbert_dict = {job["cluster_id"]: job for job in sbert_matches}
 
-    # Normalize TF-IDF scores to [0, 1] so they're on the same scale as SBERT
+    # Normalize TF-IDF scores to [0, 1]
     tfidf_scores = [job["similarity"] for job in tfidf_matches]
     tfidf_max = max(tfidf_scores) if tfidf_scores else 1.0
     tfidf_min = min(tfidf_scores) if tfidf_scores else 0.0
-    tfidf_range = tfidf_max - tfidf_min or 1.0  # avoid division by zero
 
-    def normalize_tfidf(score):
-        return (score - tfidf_min) / tfidf_range
+    # Normalize SBERT scores to [0, 1]
+    sbert_scores = [job["similarity"] for job in sbert_matches]
+    sbert_max = max(sbert_scores) if sbert_scores else 1.0
+    sbert_min = min(sbert_scores) if sbert_scores else 0.0
 
     # Only blend jobs that appear in BOTH result sets for a genuine hybrid score
     shared_cluster_ids = set(tfidf_dict.keys()).intersection(sbert_dict.keys())
@@ -24,15 +28,24 @@ def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.65):
 
     for cid in shared_cluster_ids:
         tfidf_score_raw = tfidf_dict[cid]["similarity"]
-        sbert_score = sbert_dict[cid]["similarity"]
-        tfidf_score_norm = normalize_tfidf(tfidf_score_raw)
+        sbert_score_raw = sbert_dict[cid]["similarity"]
 
-        hybrid_score = alpha * sbert_score + (1 - alpha) * tfidf_score_norm
+        # Normalize raw TF-IDF score
+        print(f"RAW TF-IDF score for cid {cid}: {tfidf_score_raw}")
+        tfidf_score_norm = normalize_score(score=tfidf_score_raw, min=tfidf_min, max=tfidf_max)
+        print(f"NORMALIZED TF-IDF score for cid {cid}: {tfidf_score_norm}")
+
+        # Normalize raw SBERT score
+        print(f"RAW SBERT score for cid {cid}: {sbert_score_raw}")
+        sbert_score_norm = normalize_score(score=sbert_score_raw, min=sbert_min, max=sbert_max)
+        print(f"NORMALIZED SBERT score for cid {cid}: {sbert_score_norm}")
+
+        hybrid_score = alpha * sbert_score_norm + (1 - alpha) * tfidf_score_norm
 
         hybrid_results.append({
             **sbert_dict[cid],
             "tfidf_similarity": tfidf_score_raw,
-            "sbert_similarity": sbert_score,
+            "sbert_similarity": sbert_score_raw,
             "similarity": hybrid_score,   # overwrite so render_match_section displays hybrid %
             "hybrid_score": hybrid_score,
             "hybrid_percent": round(hybrid_score * 100, 1)
