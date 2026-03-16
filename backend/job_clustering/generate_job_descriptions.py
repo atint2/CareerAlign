@@ -7,22 +7,14 @@ from data.scripts.preprocessor_sbert import SBERTPreprocessor
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from collections import defaultdict
 import numpy as np 
-from pathlib import Path 
-import sys 
 import time
 
 # Load API key
 from dotenv import load_dotenv
 import os
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=API_KEY)
-
-def setup_backend_imports(): 
-    # Ensure backend/ is on sys.path so its modules import as top-level modules 
-    root = Path(__file__).resolve().parents[2] 
-    backend_dir = root / "backend" 
-    sys.path.insert(0, str(backend_dir)) 
+API_KEYS = os.getenv("GEMINI_API_KEYS").split(",")
+API_KEY = API_KEYS[0]
 
 def compute_cluster_keywords(texts, labels, top_k=20):
     """
@@ -69,8 +61,6 @@ def create_llm_prompt(keywords, sample_titles, sample_descriptions):
     
     desc_text = "\n\n".join(sample_descriptions[:3]) or "None provided"
 
-
-
     prompt = f"""You are generating a concise, generalized job description for a group of similar job postings.
     Use the provided keywords, example job titles, and descriptions to infer:
     - the common role
@@ -100,20 +90,32 @@ def create_llm_prompt(keywords, sample_titles, sample_descriptions):
 def generate_job_description(keywords, sample_titles, sample_descriptions):
     """
     Call LLM to generate a generalized job description.
+    Rotates through API keys on 429 RESOURCE_EXHAUSTED errors.
     """
+
     if not sample_titles and not sample_descriptions:
         return "Insufficient data to generate description."
 
-    try:
-        prompt = create_llm_prompt(keywords, sample_titles, sample_descriptions)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-        )
-        return response.text.strip()
-    except Exception as e:
-        print("LLM generation failed:", e)
-        return "Description unavailable."
+    prompt = create_llm_prompt(keywords, sample_titles, sample_descriptions)
+
+    for i, key in enumerate(API_KEYS):
+        try:
+            current_client = genai.Client(api_key=key)
+
+            response = current_client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=prompt,
+            )
+            return response.text.strip()
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                print(f"API key {i+1}/{len(API_KEYS)} exhausted, trying next key...")
+                if i == len(API_KEYS) - 1:
+                    return "All API keys exhausted."
+            else:
+                print("LLM generation failed:", e)
+                return "Description unavailable."
 
 def main():
     # Create new database session instance
@@ -163,8 +165,15 @@ def main():
                 .one_or_none()
             )
             if existing:
+                # Check if general job description already exists
                 if existing.general_job_desc_raw:
-                    pass
+                    # If it already exists, make sure it has been preprocessed for models
+                    if not existing.general_job_desc_tfidf or not existing.general_job_desc_sbert:
+                        existing.general_job_desc_tfidf = tfidf_prep.clean_text_tfidf(existing.general_job_desc_raw)
+                        existing.general_job_desc_sbert = sbert_prep.clean_text_sbert(existing.general_job_desc_raw)
+                        db_session.commit()
+                    else:
+                        pass
                 else:
                     # Generate description for cluster
                     description = generate_job_description(
@@ -188,15 +197,18 @@ def main():
                         sbert_description = sbert_prep.clean_text_sbert(description)
                     else: 
                         print(f"Warning: Could not extract description for cluster_id {cid}") 
+
+                    if description == "All API keys exhausted.":
+                        print("All API keys exhausted. Breaking...")
+                        break
                     
-                    if description != "Description unavailable.":
                     # Save description to database
-                        existing.general_job_desc_raw = description
-                        existing.general_job_desc_tfidf = tfidf_description
-                        existing.general_job_desc_sbert = sbert_description
-                        existing.title = title
-                        db_session.commit()
-                        print(f"Description for cid {cid} successfully saved to the database")
+                    existing.general_job_desc_raw = description
+                    existing.general_job_desc_tfidf = tfidf_description
+                    existing.general_job_desc_sbert = sbert_description
+                    existing.title = title
+                    db_session.commit()
+                    print(f"Description for cid {cid} successfully saved to the database")
                     # Sleep before next iteration
                     time.sleep(30)
 

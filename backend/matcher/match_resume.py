@@ -1,4 +1,4 @@
-from google.genai import Client
+from google import genai
 from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords, find_missing_keywords
 import json
 import numpy as np
@@ -8,8 +8,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 import os
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
-client = Client(api_key=API_KEY)
+API_KEYS = os.getenv("GEMINI_API_KEYS").split(",")
+API_KEY = API_KEYS[0]
 
 def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, models, top_n=3, job_desc_text=None):
     # Transform resume
@@ -114,17 +114,29 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         })
     return top_matches
 
-def create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert):
-    job_snippets = "\n\n".join(
-        [
-            f"[TFIDF] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
-            for job in top_jobs_tfidf
-        ] +
-        [
-            f"[SBERT] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
-            for job in top_jobs_sbert
-        ]
-    )
+def create_llm_prompt(resume_text, top_jobs_tfidf = None, top_jobs_sbert = None, top_jobs_hybrid = None):
+    
+    if top_jobs_tfidf and top_jobs_sbert:
+        job_snippets = "\n\n".join(
+            [
+                f"[TFIDF] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
+                for job in top_jobs_tfidf
+            ] +
+            [
+                f"[SBERT] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
+                for job in top_jobs_sbert
+            ]
+        )
+    elif top_jobs_hybrid:
+        job_snippets = "\n\n".join(
+            [
+                f"{job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
+                for job in top_jobs_hybrid
+            ]
+        )
+    else:
+        print("No matches provided. Cannot generate a prompt.")
+        return
 
     prompt = f"""
         You are an expert AI career advisor.
@@ -174,22 +186,31 @@ def generate_resume_insights(prompt):
     if not prompt:
         return "No prompt provided for LLM generation."
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-        )
+    for i, key in enumerate(API_KEYS):
+        try:
+            current_client = genai.Client(api_key=key)
 
-        text = response.text.strip()
+            response = current_client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=prompt,
+            )
 
-        if text.startswith("```"):
-            text = text.split("```")[1]  # get content inside fences
-            text = text.replace("json", "", 1).strip()
+            text = response.text.strip()
 
-        return text
-    except Exception as e:
-        print("LLM generation failed:", e)
-        return "Feedback unavailable."
+            if text.startswith("```"):
+                text = text.split("```")[1]  # get content inside fences
+                text = text.replace("json", "", 1).strip()
+
+            return text
+        
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                print(f"API key {i+1}/{len(API_KEYS)} exhausted, trying next key...")
+                if i == len(API_KEYS) - 1:
+                    return "All API keys exhausted."
+            else:
+                raise RuntimeError(f"LLM generation failed: {e}")
 
 def match_resume(resume_text: str, job_desc: str | None, db_session):
     from backend import models
