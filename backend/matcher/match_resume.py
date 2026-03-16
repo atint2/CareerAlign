@@ -33,7 +33,7 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
         }]
         
     # Load all job embeddings from cluster_embeddings table
-    job_embeddings = db_session.query(models.ClusterEmbeddingTFIDF).all()
+    job_embeddings = db_session.query(models.ClusterEmbeddingTFIDFExperimental).all()
     if not job_embeddings:
         return []
 
@@ -48,7 +48,7 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
 
     top_matches = []
     for idx in top_indices:
-        cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
+        cluster = db_session.query(models.ClusterExperimental).filter(models.ClusterExperimental.id == cluster_ids[idx]).first()
         top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
         missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
         top_matches.append({
@@ -84,7 +84,7 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         }]
 
     # Load all cluster embeddings from database
-    cluster_embeddings = db_session.query(models.ClusterEmbeddingSBERT).all()
+    cluster_embeddings = db_session.query(models.ClusterEmbeddingSBERTExperimental).all()
     if not cluster_embeddings:
         return []
     
@@ -99,7 +99,7 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
 
     top_matches = []
     for idx in top_indices:
-        cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
+        cluster = db_session.query(models.ClusterExperimental).filter(models.ClusterExperimental.id == cluster_ids[idx]).first()
         top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
         missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
         top_matches.append({
@@ -198,7 +198,7 @@ def generate_resume_insights(prompt):
             text = response.text.strip()
 
             if text.startswith("```"):
-                text = text.split("```")[1]  # get content inside fences
+                text = text.split("```")[1] 
                 text = text.replace("json", "", 1).strip()
 
             return text
@@ -209,6 +209,8 @@ def generate_resume_insights(prompt):
                 print(f"API key {i+1}/{len(API_KEYS)} exhausted, trying next key...")
                 if i == len(API_KEYS) - 1:
                     return "All API keys exhausted."
+            elif "503" in error_str or "This model is currently experiencing high demand." in error_str:
+                raise RuntimeError(f"This model is currently experiencing high demand: {e}")
             else:
                 raise RuntimeError(f"LLM generation failed: {e}")
 

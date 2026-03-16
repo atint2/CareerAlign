@@ -165,8 +165,8 @@ def main():
                 .one_or_none()
             )
             if existing:
-                # Check if general job description already exists
-                if existing.general_job_desc_raw:
+                # Check if general job description and title already exist
+                if existing.general_job_desc_raw and existing.title:
                     # If it already exists, make sure it has been preprocessed for models
                     if not existing.general_job_desc_tfidf or not existing.general_job_desc_sbert:
                         existing.general_job_desc_tfidf = tfidf_prep.clean_text_tfidf(existing.general_job_desc_raw)
@@ -201,16 +201,20 @@ def main():
                     if description == "All API keys exhausted.":
                         print("All API keys exhausted. Breaking...")
                         break
-                    
-                    # Save description to database
-                    existing.general_job_desc_raw = description
-                    existing.general_job_desc_tfidf = tfidf_description
-                    existing.general_job_desc_sbert = sbert_description
-                    existing.title = title
-                    db_session.commit()
-                    print(f"Description for cid {cid} successfully saved to the database")
-                    # Sleep before next iteration
-                    time.sleep(30)
+                    elif description == "Description unavailable.":
+                        print("Description unavailable. Not saving to database.")
+                    elif not title:
+                        print("Title could not be extracted. Not saving to database.")
+                    else:
+                        # Save description to database
+                        existing.general_job_desc_raw = description
+                        existing.general_job_desc_tfidf = tfidf_description
+                        existing.general_job_desc_sbert = sbert_description
+                        existing.title = title
+                        db_session.commit()
+                        print(f"Description for cid {cid} successfully saved to the database")
+                        # Sleep before next iteration
+                        time.sleep(30)
 
             # print(f"\nCluster {cid}")
             # print("Top keywords:", ", ".join(keywords[cid]))

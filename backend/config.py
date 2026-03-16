@@ -14,7 +14,7 @@ UMAP_PARAMS = {
 
 # For HDBSCAN clustering
 HDBSCAN_PARAMS = {
-    "min_cluster_size": 40,
+    "min_cluster_size": 60,
     "min_samples": 10,
     "metric": "euclidean",
     "cluster_selection_method": "eom",
@@ -25,9 +25,10 @@ from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 CUSTOM_STOPWORDS = ENGLISH_STOP_WORDS | {
     "new", "work", "working", "using", "use", "used",
     "experience", "ability", "strong", "good", "knowledge",
-    "team", "within", "across", "including", "related",
+    "team", "within", "across", "including", "includes", "include", "related",
     "role", "position", "job", "company", "opportunity",
     "responsibility", "requires", "contribute", "seeking", "based",
     "demonstrate", "demonstrating", "demonstrates", "valued",
-    "values", "value", "functioning", "ideal"
+    "values", "value", "functioning", "ideal", "high", "low",
+    "involves", "possess", "possesses",
 }
