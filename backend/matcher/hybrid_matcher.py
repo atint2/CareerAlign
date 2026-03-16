@@ -1,6 +1,6 @@
 from typing import Optional
-
-from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert
+import json
+from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights
 from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords
 
 def normalize_score(score, min, max):
@@ -31,14 +31,14 @@ def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.65):
         sbert_score_raw = sbert_dict[cid]["similarity"]
 
         # Normalize raw TF-IDF score
-        print(f"RAW TF-IDF score for cid {cid}: {tfidf_score_raw}")
+        # print(f"RAW TF-IDF score for cid {cid}: {tfidf_score_raw}")
         tfidf_score_norm = normalize_score(score=tfidf_score_raw, min=tfidf_min, max=tfidf_max)
-        print(f"NORMALIZED TF-IDF score for cid {cid}: {tfidf_score_norm}")
+        # print(f"NORMALIZED TF-IDF score for cid {cid}: {tfidf_score_norm}")
 
         # Normalize raw SBERT score
-        print(f"RAW SBERT score for cid {cid}: {sbert_score_raw}")
+        # print(f"RAW SBERT score for cid {cid}: {sbert_score_raw}")
         sbert_score_norm = normalize_score(score=sbert_score_raw, min=sbert_min, max=sbert_max)
-        print(f"NORMALIZED SBERT score for cid {cid}: {sbert_score_norm}")
+        # print(f"NORMALIZED SBERT score for cid {cid}: {sbert_score_norm}")
 
         hybrid_score = alpha * sbert_score_norm + (1 - alpha) * tfidf_score_norm
 
@@ -90,7 +90,7 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         tfidf_service,
         db_session,
         models,
-        top_n=10,
+        top_n=20,
         job_desc_text=job_desc_tfidf
     )
 
@@ -100,7 +100,7 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         sbert_service,
         db_session,
         models,
-        top_n=10,
+        top_n=20,
         job_desc_text=job_desc_sbert
     )
 
@@ -109,8 +109,22 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         top_jobs_sbert
     )[:5]
 
+    # Create LLM prompt
+    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=hybrid_matches)
+    # Generate insights using LLM
+    try:
+        insights_text = generate_resume_insights(prompt)
+        insights = json.loads(insights_text)
+    except RuntimeError as e:
+        print(f"Insights unavailable: {e}")
+        insights = None
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse insights JSON: {e}")
+        insights = None
+
     return {
         "tfidf_matches": top_jobs_tfidf[:5],
         "sbert_matches": top_jobs_sbert[:5],
-        "hybrid_matches": hybrid_matches
+        "hybrid_matches": hybrid_matches,
+        "insights": insights
     }
