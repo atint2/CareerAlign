@@ -46,7 +46,7 @@ def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.65):
             **sbert_dict[cid],
             "tfidf_similarity": tfidf_score_raw,
             "sbert_similarity": sbert_score_raw,
-            "similarity": hybrid_score,   # overwrite so render_match_section displays hybrid %
+            "similarity": hybrid_score,  
             "hybrid_score": hybrid_score,
             "hybrid_percent": round(hybrid_score * 100, 1)
         })

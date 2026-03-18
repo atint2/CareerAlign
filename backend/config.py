@@ -3,7 +3,6 @@ EMBEDDING_MODEL = "all-minilm-l6-v2"
 
 # For UMAP dimensionality reduction
 UMAP_PARAMS = {
-    "n_neighbors": 15, 
     "n_components": 15,
     "min_dist": 0.1,
     "metric": "cosine",
@@ -30,5 +29,6 @@ CUSTOM_STOPWORDS = ENGLISH_STOP_WORDS | {
     "responsibility", "requires", "contribute", "seeking", "based",
     "demonstrate", "demonstrating", "demonstrates", "valued",
     "values", "value", "functioning", "ideal", "high", "low",
-    "involves", "possess", "possesses",
+    "involves", "possess", "possesses", "join", "joined", "joins",
+    "excellent", "great", "skill", "skills", "skilled"
 }
