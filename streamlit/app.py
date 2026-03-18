@@ -216,13 +216,6 @@ if st.button("Test Custom Job Description"):
                 moderate_threshold=10
             )
 
-            render_match_section(
-                "Hybrid Match",
-                data["hybrid_matches"],
-                strong_threshold=50,
-                moderate_threshold=25
-            )
-
         else:
             st.error(f"Backend error: {response.status_code}")
             st.write(response.text)

@@ -104,17 +104,20 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         top_jobs_tfidf,
         top_jobs_sbert
     )[:10]
-    
-    # Rank individual postings within matched clusters
-    posting_matches = rank_jobs_within_clusters(
-        resume_text_tfidf=resume_text_tfidf,
-        resume_text_sbert=resume_text_sbert,
-        matched_clusters=hybrid_matches,
-        tfidf_service=tfidf_service,
-        sbert_service=sbert_service,
-        db_session=db_session,
-        models=models
-    )
+
+    # Rank individual postings within matched clusters if job_desc not provided
+    if not job_desc:
+        posting_matches = rank_jobs_within_clusters(
+            resume_text_tfidf=resume_text_tfidf,
+            resume_text_sbert=resume_text_sbert,
+            matched_clusters=hybrid_matches,
+            tfidf_service=tfidf_service,
+            sbert_service=sbert_service,
+            db_session=db_session,
+            models=models
+        )
+    else:
+        posting_matches = None
 
     # Create LLM prompt
     prompt = create_llm_prompt(resume_text, top_jobs_hybrid=posting_matches)
