@@ -140,6 +140,11 @@ if st.button("Generate Career Recommendations"):
                 moderate_threshold=25
             )
 
+            render_match_section(
+                "Job Postings",
+                data["posting_matches"]
+            )
+
             st.subheader("AI Career Insights")
             insights = data.get("insights")
 

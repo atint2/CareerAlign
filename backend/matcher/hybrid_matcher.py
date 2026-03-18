@@ -1,56 +1,52 @@
 from typing import Optional
 import json
-from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights
-from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords
+from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights, normalize_array, rank_jobs_within_clusters
+from backend.services.fit_tf_idf_vectorizer import load_vectorizer
 
-def normalize_score(score, min, max):
-    return (score - min) / (max - min)
-
-def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.65):
+def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
 
     tfidf_dict = {job["cluster_id"]: job for job in tfidf_matches}
     sbert_dict = {job["cluster_id"]: job for job in sbert_matches}
 
-    # Normalize TF-IDF scores to [0, 1]
-    tfidf_scores = [job["similarity"] for job in tfidf_matches]
-    tfidf_max = max(tfidf_scores) if tfidf_scores else 1.0
-    tfidf_min = min(tfidf_scores) if tfidf_scores else 0.0
+    # Blend jobs that appear in result sets for a hybrid score
+    all_cluster_ids = sorted(set(tfidf_dict.keys()).union(sbert_dict.keys()))
 
-    # Normalize SBERT scores to [0, 1]
-    sbert_scores = [job["similarity"] for job in sbert_matches]
-    sbert_max = max(sbert_scores) if sbert_scores else 1.0
-    sbert_min = min(sbert_scores) if sbert_scores else 0.0
+    # Build aligned scores list
+    tfidf_scores = []
+    sbert_scores = []
+    for cid in all_cluster_ids:
+        tfidf_scores.append(tfidf_dict.get(cid, {}).get("similarity", 0))
+        sbert_scores.append(sbert_dict.get(cid, {}).get("similarity", 0))
 
-    # Only blend jobs that appear in BOTH result sets for a genuine hybrid score
-    shared_cluster_ids = set(tfidf_dict.keys()).intersection(sbert_dict.keys())
+    # Normalize scores
+    tfidf_norm = normalize_array(tfidf_scores)
+    sbert_norm = normalize_array(sbert_scores) 
 
+
+    # Compute hybrid score per cluster
     hybrid_results = []
+    for i, cid in enumerate(all_cluster_ids):
+        tfidf_score_raw = tfidf_scores[i]
+        sbert_score_raw = sbert_scores[i]
 
-    for cid in shared_cluster_ids:
-        tfidf_score_raw = tfidf_dict[cid]["similarity"]
-        sbert_score_raw = sbert_dict[cid]["similarity"]
-
-        # Normalize raw TF-IDF score
-        # print(f"RAW TF-IDF score for cid {cid}: {tfidf_score_raw}")
-        tfidf_score_norm = normalize_score(score=tfidf_score_raw, min=tfidf_min, max=tfidf_max)
-        # print(f"NORMALIZED TF-IDF score for cid {cid}: {tfidf_score_norm}")
-
-        # Normalize raw SBERT score
-        # print(f"RAW SBERT score for cid {cid}: {sbert_score_raw}")
-        sbert_score_norm = normalize_score(score=sbert_score_raw, min=sbert_min, max=sbert_max)
-        # print(f"NORMALIZED SBERT score for cid {cid}: {sbert_score_norm}")
+        tfidf_score_norm = tfidf_norm[i]
+        sbert_score_norm = sbert_norm[i]
 
         hybrid_score = alpha * sbert_score_norm + (1 - alpha) * tfidf_score_norm
 
+        # Safely get base job info
+        base_job = sbert_dict.get(cid) or tfidf_dict.get(cid)
+
         hybrid_results.append({
-            **sbert_dict[cid],
+            **base_job,
             "tfidf_similarity": tfidf_score_raw,
             "sbert_similarity": sbert_score_raw,
-            "similarity": hybrid_score,  
+            "similarity": hybrid_score,
             "hybrid_score": hybrid_score,
             "hybrid_percent": round(hybrid_score * 100, 1)
         })
 
+    # Sort descending
     hybrid_results.sort(key=lambda x: x["hybrid_score"], reverse=True)
 
     return hybrid_results
@@ -107,10 +103,21 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
     hybrid_matches = hybrid_rank_jobs(
         top_jobs_tfidf,
         top_jobs_sbert
-    )[:5]
+    )[:10]
+    
+    # Rank individual postings within matched clusters
+    posting_matches = rank_jobs_within_clusters(
+        resume_text_tfidf=resume_text_tfidf,
+        resume_text_sbert=resume_text_sbert,
+        matched_clusters=hybrid_matches,
+        tfidf_service=tfidf_service,
+        sbert_service=sbert_service,
+        db_session=db_session,
+        models=models
+    )
 
     # Create LLM prompt
-    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=hybrid_matches)
+    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=posting_matches)
     # Generate insights using LLM
     try:
         insights_text = generate_resume_insights(prompt)
@@ -123,8 +130,9 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         insights = None
 
     return {
-        "tfidf_matches": top_jobs_tfidf[:5],
-        "sbert_matches": top_jobs_sbert[:5],
+        "tfidf_matches": top_jobs_tfidf,
+        "sbert_matches": top_jobs_sbert,
         "hybrid_matches": hybrid_matches,
+        "posting_matches": posting_matches,
         "insights": insights
     }
