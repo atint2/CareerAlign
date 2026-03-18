@@ -69,13 +69,6 @@ class ClusterEmbeddingBase(BaseModel):
     embedding: List[float]
     cluster_id: int
 
-# For SBERT embeddings, which have a different dimension than TF-IDF
-class ReducedClusterEmbeddingBase(BaseModel):
-    reduced_embedding: List[float]
-    model_version: str
-    cluster_embedding_id: int
-    reduction_method: str
-
 class ResumeBase(BaseModel):
     resume_id: str
     content_raw: str

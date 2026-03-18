@@ -54,12 +54,32 @@ class Cluster(Base):
     general_job_desc_tfidf = Column(String, nullable=True)
     num_postings = Column(Integer, nullable=False)
 
+# FOR DIRECT COMPARISON
+class ClusterExperimental(Base):
+    __tablename__ = "clusters_experimental"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    cluster_id = Column(Integer, nullable=False, unique=True)
+    title = Column(String, nullable=True)
+    general_job_desc_raw = Column(String, nullable=True)
+    general_job_desc_sbert = Column(String, nullable=True)
+    general_job_desc_tfidf = Column(String, nullable=True)
+    num_postings = Column(Integer, nullable=False)
+
 class ClusterEmbeddingTFIDF(Base):
     __tablename__ = "cluster_embeddings_tfidf"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     embedding = Column(Vector(5000), nullable=False)
     cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
+
+# FOR DIRECT COMPARISON
+class ClusterEmbeddingTFIDFExperimental(Base):
+    __tablename__ = "cluster_embeddings_tfidf_experimental"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    embedding = Column(Vector(5000), nullable=False)
+    cluster_id = Column(Integer, ForeignKey("clusters_experimental.id", ondelete="CASCADE"), nullable=False, index=True)
 
 class ClusterEmbeddingSBERT(Base):
     __tablename__ = "cluster_embeddings_sbert"
@@ -68,14 +88,13 @@ class ClusterEmbeddingSBERT(Base):
     embedding = Column(Vector(384), nullable=False)
     cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
 
-class ReducedClusterEmbedding(Base):
-    __tablename__ = "reduced_cluster_embeddings"
+# FOR DIRECT COMPARISON
+class ClusterEmbeddingSBERTExperimental(Base):
+    __tablename__ = "cluster_embeddings_sbert_experimental"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    reduced_embedding = Column(Vector(15), nullable=False)
-    model_version = Column(String, nullable=False)
-    cluster_embedding_id = Column(Integer, ForeignKey("cluster_embeddings_sbert.id", ondelete="CASCADE"), nullable=False, index=True)
-    reduction_method = Column(String, nullable=False)
+    embedding = Column(Vector(384), nullable=False)
+    cluster_id = Column(Integer, ForeignKey("clusters_experimental.id", ondelete="CASCADE"), nullable=False, index=True)
 
 class Resume(Base):
     __tablename__ = "resumes"

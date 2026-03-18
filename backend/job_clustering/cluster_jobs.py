@@ -90,9 +90,11 @@ def merge_similar_clusters(centroids, labels, threshold=0.95):
     return new_labels
 
 def main(): 
+    # Create new database session instance
     SessionLocal = database.SessionLocal 
-    # Retrieve reduced embeddings from database and cluster them 
     db_session = SessionLocal() 
+
+    # Retrieve reduced embeddings from database and cluster them 
     try: 
         # Retrieve reduced embeddings along with their job posting IDs 
         rows = ( 
@@ -130,11 +132,11 @@ def main():
         cluster_labels = assign_outliers_with_knn(embeddings, cluster_labels)
 
         centroids = compute_cluster_centroids(embeddings, cluster_labels)
-        cluster_labels = merge_similar_clusters(
-            centroids,
-            cluster_labels,
-            threshold=0.999,
-        )
+        # cluster_labels = merge_similar_clusters(
+        #     centroids,
+        #     cluster_labels,
+        #     threshold=0.9985,
+        # )
         num_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
         print("Number of clusters after merging similar ones:", num_clusters)
 
@@ -155,8 +157,8 @@ def main():
 
         for cid, count in cluster_counts.items():
             existing = (
-                db_session.query(models.Cluster)
-                .filter(models.Cluster.cluster_id == int(cid))
+                db_session.query(models.ClusterExperimental)
+                .filter(models.ClusterExperimental.cluster_id == int(cid))
                 .one_or_none()
             )
 
@@ -165,7 +167,7 @@ def main():
                 existing.num_postings = count
             else:
                 # Create new cluster row
-                new_cluster = models.Cluster(
+                new_cluster = models.ClusterExperimental(
                     cluster_id=int(cid),
                     general_job_desc_raw=None,   # fill later with LLM
                     num_postings=count,

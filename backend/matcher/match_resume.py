@@ -1,4 +1,4 @@
-from google.genai import Client
+from google import genai
 from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords, find_missing_keywords
 import json
 import numpy as np
@@ -8,8 +8,26 @@ from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 import os
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
-client = Client(api_key=API_KEY)
+API_KEYS = os.getenv("GEMINI_API_KEYS").split(",")
+API_KEY = API_KEYS[0]
+
+def normalize_score(score, min, max):
+    # Normalize cosine similarity score using min-max
+    if max == min:
+        return 0.0
+    return (score - min) / (max - min)
+
+def normalize_array(scores):
+    # Normalize cosine similarity scores using min-max
+    scores = np.array(scores, dtype=float)
+
+    min_val = scores.min()
+    max_val = scores.max()
+
+    if max_val == min_val:
+        return np.zeros_like(scores)
+
+    return (scores - min_val) / (max_val - min_val)
 
 def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, models, top_n=3, job_desc_text=None):
     # Transform resume
@@ -33,7 +51,7 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
         }]
         
     # Load all job embeddings from cluster_embeddings table
-    job_embeddings = db_session.query(models.ClusterEmbeddingTFIDF).all()
+    job_embeddings = db_session.query(models.ClusterEmbeddingTFIDFExperimental).all()
     if not job_embeddings:
         return []
 
@@ -47,12 +65,19 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
     top_indices = similarities.argsort()[::-1][:top_n]
 
     top_matches = []
+    # Fetch all clusters
+    clusters = db_session.query(models.ClusterExperimental).filter(
+    models.ClusterExperimental.id.in_(cluster_ids)
+    ).all()
+
+    cluster_map = {c.id: c for c in clusters}
+
     for idx in top_indices:
-        cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
+        cluster = cluster_map[cluster_ids[idx]]
         top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
         missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
         top_matches.append({
-            "cluster_id": cluster.id,
+            "cluster_id": cluster.cluster_id,
             "title": cluster.title,
             "description": cluster.general_job_desc_raw,
             "similarity": float(similarities[idx]),
@@ -84,7 +109,7 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         }]
 
     # Load all cluster embeddings from database
-    cluster_embeddings = db_session.query(models.ClusterEmbeddingSBERT).all()
+    cluster_embeddings = db_session.query(models.ClusterEmbeddingSBERTExperimental).all()
     if not cluster_embeddings:
         return []
     
@@ -99,11 +124,11 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
 
     top_matches = []
     for idx in top_indices:
-        cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
+        cluster = db_session.query(models.ClusterExperimental).filter(models.ClusterExperimental.id == cluster_ids[idx]).first()
         top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
         missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
         top_matches.append({
-            "cluster_id": cluster.id,
+            "cluster_id": cluster.cluster_id,
             "title": cluster.title,
             "description": cluster.general_job_desc_raw,
             "similarity": float(similarities[idx]),
@@ -114,17 +139,79 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         })
     return top_matches
 
-def create_llm_prompt(resume_text, top_jobs_tfidf, top_jobs_sbert):
-    job_snippets = "\n\n".join(
-        [
-            f"[TFIDF] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
-            for job in top_jobs_tfidf
-        ] +
-        [
-            f"[SBERT] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
-            for job in top_jobs_sbert
-        ]
-    )
+def rank_jobs_within_clusters(resume_text_tfidf, resume_text_sbert, matched_clusters, tfidf_service, sbert_service, db_session, models, alpha=0.75, top_n=10):
+    """
+    Given hybrid-matched clusters, fetch individual job postings within them
+    and compute fine-grained similarity against the resume.
+    """
+    cluster_ids = [c["cluster_id"] for c in matched_clusters]
+
+    # Fetch all job postings in matched clusters
+    postings = db_session.query(models.JobPosting).filter(
+        models.JobPosting.cluster_id.in_(cluster_ids)
+    ).all()
+
+    if not postings:
+        return []
+
+    # Compute TF-IDF similarities for all postings
+    resume_tfidf_vec = tfidf_service.transform([resume_text_tfidf])
+    posting_tfidf_texts = [p.desc_tfidf for p in postings]
+    posting_tfidf_vecs = tfidf_service.transform(posting_tfidf_texts)
+    tfidf_scores = cosine_similarity(resume_tfidf_vec, posting_tfidf_vecs)[0]
+
+    # Compute SBERT similarities for all postings
+    resume_sbert_vec = np.array(sbert_service.embed([resume_text_sbert]))
+    posting_sbert_texts = [p.desc_sbert for p in postings]
+    posting_sbert_vecs = np.array(sbert_service.embed(posting_sbert_texts))
+    sbert_scores = cosine_similarity(resume_sbert_vec, posting_sbert_vecs)[0]
+
+    # Normalize both score arrays to [0, 1]
+    tfidf_norm = normalize_array(tfidf_scores)
+    sbert_norm = normalize_array(sbert_scores)
+    hybrid_scores = alpha * sbert_norm + (1 - alpha) * tfidf_norm
+
+    results = []
+    for i, posting in enumerate(postings):
+        results.append({
+            "job_id": posting.id,
+            "cluster_id": posting.cluster_id,
+            "title": posting.title,
+            "description": posting.desc_raw,
+            "snippet": (posting.desc_raw or "")[:200] + "...",
+            "similarity": float(hybrid_scores[i]),
+            "tfidf_similarity": float(tfidf_scores[i]),
+            "sbert_similarity": float(sbert_scores[i]),
+            "hybrid_score": float(hybrid_scores[i]),
+            "hybrid_percent": round(float(hybrid_scores[i]) * 100, 1),
+        })
+
+    results.sort(key=lambda x: x["hybrid_score"], reverse=True)
+    return results[:top_n]
+
+def create_llm_prompt(resume_text, top_jobs_tfidf = None, top_jobs_sbert = None, top_jobs_hybrid = None):
+    
+    if top_jobs_tfidf and top_jobs_sbert:
+        job_snippets = "\n\n".join(
+            [
+                f"[TFIDF] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
+                for job in top_jobs_tfidf
+            ] +
+            [
+                f"[SBERT] {job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
+                for job in top_jobs_sbert
+            ]
+        )
+    elif top_jobs_hybrid:
+        job_snippets = "\n\n".join(
+            [
+                f"{job['title']} | similarity={job['similarity']:.4f}\n{job['snippet']}"
+                for job in top_jobs_hybrid
+            ]
+        )
+    else:
+        print("No matches provided. Cannot generate a prompt.")
+        return
 
     prompt = f"""
         You are an expert AI career advisor.
@@ -174,22 +261,33 @@ def generate_resume_insights(prompt):
     if not prompt:
         return "No prompt provided for LLM generation."
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-        )
+    for i, key in enumerate(API_KEYS):
+        try:
+            current_client = genai.Client(api_key=key)
 
-        text = response.text.strip()
+            response = current_client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=prompt,
+            )
 
-        if text.startswith("```"):
-            text = text.split("```")[1]  # get content inside fences
-            text = text.replace("json", "", 1).strip()
+            text = response.text.strip()
 
-        return text
-    except Exception as e:
-        print("LLM generation failed:", e)
-        return "Feedback unavailable."
+            if text.startswith("```"):
+                text = text.split("```")[1] 
+                text = text.replace("json", "", 1).strip()
+
+            return text
+        
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                print(f"API key {i+1}/{len(API_KEYS)} exhausted, trying next key...")
+                if i == len(API_KEYS) - 1:
+                    return "All API keys exhausted."
+            elif "503" in error_str or "This model is currently experiencing high demand." in error_str:
+                raise RuntimeError(f"This model is currently experiencing high demand: {e}")
+            else:
+                raise RuntimeError(f"LLM generation failed: {e}")
 
 def match_resume(resume_text: str, job_desc: str | None, db_session):
     from backend import models

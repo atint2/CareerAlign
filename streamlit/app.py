@@ -140,6 +140,11 @@ if st.button("Generate Career Recommendations"):
                 moderate_threshold=25
             )
 
+            render_match_section(
+                "Job Postings",
+                data["posting_matches"]
+            )
+
             st.subheader("AI Career Insights")
             insights = data.get("insights")
 
@@ -209,13 +214,6 @@ if st.button("Test Custom Job Description"):
                 data["tfidf_matches"],
                 strong_threshold=30,
                 moderate_threshold=10
-            )
-
-            render_match_section(
-                "Hybrid Match",
-                data["hybrid_matches"],
-                strong_threshold=50,
-                moderate_threshold=25
             )
 
         else:
