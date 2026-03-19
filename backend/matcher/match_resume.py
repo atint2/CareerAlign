@@ -11,12 +11,6 @@ load_dotenv()
 API_KEYS = os.getenv("GEMINI_API_KEYS").split(",")
 API_KEY = API_KEYS[0]
 
-def normalize_score(score, min, max):
-    # Normalize cosine similarity score using min-max
-    if max == min:
-        return 0.0
-    return (score - min) / (max - min)
-
 def normalize_array(scores):
     # Normalize cosine similarity scores using min-max
     scores = np.array(scores, dtype=float)
@@ -150,20 +144,29 @@ def rank_jobs_within_clusters(resume_text_tfidf, resume_text_sbert, matched_clus
     postings = db_session.query(models.JobPosting).filter(
         models.JobPosting.cluster_id.in_(cluster_ids)
     ).all()
+    posting_ids = [p.id for p in postings]
 
     if not postings:
         return []
 
+    # Retrieve TF-IDF embeddings from the database
+    posting_tfidf_emb_objs = db_session.query(models.JobEmbeddingTFIDF).filter(
+        models.JobEmbeddingTFIDF.job_posting_id.in_(posting_ids)
+    ).all()
+    posting_tfidf_vecs = [p.embedding for p in posting_tfidf_emb_objs]
+
     # Compute TF-IDF similarities for all postings
     resume_tfidf_vec = tfidf_service.transform([resume_text_tfidf])
-    posting_tfidf_texts = [p.desc_tfidf for p in postings]
-    posting_tfidf_vecs = tfidf_service.transform(posting_tfidf_texts)
     tfidf_scores = cosine_similarity(resume_tfidf_vec, posting_tfidf_vecs)[0]
+
+    # Retrieve SBERT embeddings from the database
+    posting_sbert_emb_objs = db_session.query(models.JobEmbeddingSBERT).filter(
+        models.JobEmbeddingSBERT.job_posting_id.in_(posting_ids)
+    ).all()
+    posting_sbert_vecs = [p.embedding for p in posting_sbert_emb_objs]
 
     # Compute SBERT similarities for all postings
     resume_sbert_vec = np.array(sbert_service.embed([resume_text_sbert]))
-    posting_sbert_texts = [p.desc_sbert for p in postings]
-    posting_sbert_vecs = np.array(sbert_service.embed(posting_sbert_texts))
     sbert_scores = cosine_similarity(resume_sbert_vec, posting_sbert_vecs)[0]
 
     # Normalize both score arrays to [0, 1]
