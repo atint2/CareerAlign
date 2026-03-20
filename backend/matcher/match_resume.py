@@ -133,7 +133,7 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         })
     return top_matches
 
-def rank_jobs_within_clusters(resume_text_tfidf, resume_text_sbert, matched_clusters, tfidf_service, sbert_service, db_session, models, alpha=0.75, top_n=10):
+def rank_jobs_within_clusters(resume_text, resume_text_tfidf, resume_text_sbert, matched_clusters, tfidf_service, sbert_service, db_session, models, alpha=0.75, top_n=10):
     """
     Given hybrid-matched clusters, fetch individual job postings within them
     and compute fine-grained similarity against the resume.
@@ -176,6 +176,8 @@ def rank_jobs_within_clusters(resume_text_tfidf, resume_text_sbert, matched_clus
 
     results = []
     for i, posting in enumerate(postings):
+        top_keywords = find_top_keywords(posting.desc_raw, resume_text)
+        missing_keywords = find_missing_keywords(posting.desc_raw, resume_text)
         results.append({
             "job_id": posting.id,
             "cluster_id": posting.cluster_id,
@@ -187,6 +189,8 @@ def rank_jobs_within_clusters(resume_text_tfidf, resume_text_sbert, matched_clus
             "sbert_similarity": float(sbert_scores[i]),
             "hybrid_score": float(hybrid_scores[i]),
             "hybrid_percent": round(float(hybrid_scores[i]) * 100, 1),
+            "top_keywords": top_keywords,
+            "missing_keywords": missing_keywords 
         })
 
     results.sort(key=lambda x: x["hybrid_score"], reverse=True)

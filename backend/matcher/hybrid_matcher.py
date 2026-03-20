@@ -108,6 +108,7 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
     # Rank individual postings within matched clusters if job_desc not provided
     if not job_desc:
         posting_matches = rank_jobs_within_clusters(
+            resume_text=resume_text,
             resume_text_tfidf=resume_text_tfidf,
             resume_text_sbert=resume_text_sbert,
             matched_clusters=hybrid_matches,
