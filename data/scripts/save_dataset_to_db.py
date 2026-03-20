@@ -6,23 +6,13 @@ The script will skip rows whose `job_id` already exist in the database to avoid 
 from pathlib import Path
 import sys
 from dotenv import load_dotenv
+load_dotenv() 
 from tqdm import tqdm
 tqdm.pandas()
 import pandas as pd
-
-def setup_backend_imports():
-	# Ensure backend/ is on sys.path so its modules import as top-level modules
-	root = Path(__file__).resolve().parents[2]
-	backend_dir = root / "backend"
-	sys.path.insert(0, str(backend_dir))
+from backend import database, models
 
 def save_job_postings_to_db(dataset_filepath):
-	try:
-		import database
-		import models
-	except Exception as e:
-		print("Exception importing backend modules:", e)	
-
 	# Read CSV
 	df = pd.read_csv(dataset_filepath)
 	if df.empty:
@@ -108,12 +98,7 @@ def save_job_postings_to_db(dataset_filepath):
 		session.close()
 
 def save_resumes_to_db(dataset_filepath):
-	try:
-		import database
-		import models
-	except Exception as e:
-		print("Exception importing backend modules:", e)	
-
+	# Read CSV
 	df = pd.read_csv(dataset_filepath)
 	if df.empty:
 		print("CSV is empty — nothing to do.")
@@ -199,10 +184,8 @@ def main():
 	resume_dataset = Path(__file__).resolve().parents[1] / "processed" / "cleaned_resumes.csv"
 	job_posting_dataset = Path(__file__).resolve().parents[1] / "processed" / "cleaned_job_postings.csv"
 
-	load_dotenv()  # ensure DATABASE_URL is present for backend/database.py
-	setup_backend_imports()
-
-	# save_job_postings_to_db(job_posting_dataset)
+	# Save datasets to DB
+	save_job_postings_to_db(job_posting_dataset)
 	save_resumes_to_db(resume_dataset)
 
 if __name__ == "__main__":
