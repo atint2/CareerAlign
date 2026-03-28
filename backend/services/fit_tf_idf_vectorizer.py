@@ -38,7 +38,7 @@ def load_vectorizer(path="tfidf_vectorizer.pkl"):
     embedding_service.vectorizer = vectorizer
     return embedding_service
 
-def find_top_keywords(job_desc, resume_text, top_k=20):
+def find_top_keywords(job_desc, resume_text):
     """Find top keywords in job description that are most relevant to the resume."""
     
     embedding_service = load_vectorizer()
@@ -56,16 +56,16 @@ def find_top_keywords(job_desc, resume_text, top_k=20):
     feature_names = vectorizer.get_feature_names_out()
 
     # Get top scoring features
-    top_indices = scores.argsort()[-top_k:][::-1]
+    top_indices = scores.argsort()[::-1]
 
     top_keywords = [
         feature_names[idx] for idx in top_indices
         if scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
     ]
 
-    return top_keywords
+    return top_keywords[:10]
 
-def find_missing_keywords(job_desc, resume_text, top_k=10):
+def find_missing_keywords(job_desc, resume_text):
     """Find top keywords in job description that are absent from the resume."""
     
     embedding_service = load_vectorizer()
@@ -79,14 +79,14 @@ def find_missing_keywords(job_desc, resume_text, top_k=10):
     # Keep only terms that appear in the job desc but not in the resume
     missing_scores = np.where(resume_vec == 0, job_desc_vec, 0)
 
-    top_indices = missing_scores.argsort()[-top_k:][::-1]
+    top_indices = missing_scores.argsort()[::-1]
 
     missing_keywords = [
         feature_names[idx] for idx in top_indices
         if missing_scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
     ]
 
-    return missing_keywords
+    return missing_keywords[:10]
 
 if __name__ == "__main__":
     fit_and_save_vectorizer()

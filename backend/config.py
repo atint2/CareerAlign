@@ -30,5 +30,6 @@ CUSTOM_STOPWORDS = ENGLISH_STOP_WORDS | {
     "demonstrate", "demonstrating", "demonstrates", "valued",
     "values", "value", "functioning", "ideal", "high", "low",
     "involves", "possess", "possesses", "join", "joined", "joins",
-    "excellent", "great", "skill", "skills", "skilled"
+    "excellent", "great", "skill", "skills", "skilled", "like", "contributing",
+    "contributes", "seek", "seeking", "seeks"
 }
