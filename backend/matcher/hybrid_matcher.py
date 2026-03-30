@@ -1,7 +1,11 @@
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import json
 from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights, normalize_array, rank_jobs_within_clusters
 from backend.services.fit_tf_idf_vectorizer import load_vectorizer
+from backend import models
+from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
+from data.scripts.preprocessor_sbert import SBERTPreprocessor
+from backend.services.sbert_embedder import SBERTEmbeddingService
 
 def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
 
@@ -52,19 +56,18 @@ def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
     return hybrid_results
 
 def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
-    from backend import models
+    """Match resumes to LLM-generated job descriptions using hybrid approach -- combining pre-trained SBERT model and trained TF-IDF model."""
 
+    # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        from backend.services.sbert_embedder import SBERTEmbeddingService
         sbert_service = SBERTEmbeddingService()
     except Exception as e:
         raise RuntimeError(f"Failed to load embedding services: {e}") from e
 
+    # Initialize preprocessors
     try:
-        from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
         tfidf_prep = TFIDFPreprocessor()
-        from data.scripts.preprocessor_sbert import SBERTPreprocessor
         sbert_prep = SBERTPreprocessor()
     except Exception as e:
         raise RuntimeError(f"Failed to load preprocessors: {e}") from e
@@ -105,23 +108,8 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         top_jobs_sbert
     )[:10]
 
-    # Rank individual postings within matched clusters if job_desc not provided
-    if not job_desc:
-        posting_matches = rank_jobs_within_clusters(
-            resume_text=resume_text,
-            resume_text_tfidf=resume_text_tfidf,
-            resume_text_sbert=resume_text_sbert,
-            matched_clusters=hybrid_matches,
-            tfidf_service=tfidf_service,
-            sbert_service=sbert_service,
-            db_session=db_session,
-            models=models
-        )
-    else:
-        posting_matches = None
-
     # Create LLM prompt
-    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=posting_matches)
+    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=hybrid_matches)
     # Generate insights using LLM
     try:
         insights_text = generate_resume_insights(prompt)
@@ -137,6 +125,55 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         "tfidf_matches": top_jobs_tfidf,
         "sbert_matches": top_jobs_sbert,
         "hybrid_matches": hybrid_matches,
+        "insights": insights
+    }
+
+def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], db_session):
+    """Optional matching of resumes to job postings in database given matched cluster ids."""
+
+    # Load embedding services
+    try:
+        tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
+        sbert_service = SBERTEmbeddingService()
+    except Exception as e:
+        raise RuntimeError(f"Failed to load embedding services: {e}") from e
+
+    # Initialize preprocessors
+    try:
+        tfidf_prep = TFIDFPreprocessor()
+        sbert_prep = SBERTPreprocessor()
+    except Exception as e:
+        raise RuntimeError(f"Failed to load preprocessors: {e}") from e
+
+    # Preprocess resume text
+    resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_text)
+    resume_text_sbert = sbert_prep.clean_text_sbert(resume_text)
+
+    # Rank individual postings within matched clusters
+    posting_matches = rank_jobs_within_clusters(
+            resume_text=resume_text,
+            resume_text_tfidf=resume_text_tfidf,
+            resume_text_sbert=resume_text_sbert,
+            matched_clusters=hybrid_matches,
+            tfidf_service=tfidf_service,
+            sbert_service=sbert_service,
+            db_session=db_session,
+            models=models
+        )
+     # Create LLM prompt
+    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=posting_matches)
+    # Generate insights using LLM
+    try:
+        insights_text = generate_resume_insights(prompt)
+        insights = json.loads(insights_text)
+    except RuntimeError as e:
+        print(f"Insights unavailable: {e}")
+        insights = None
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse insights JSON: {e}")
+        insights = None
+
+    return {
         "posting_matches": posting_matches,
         "insights": insights
     }

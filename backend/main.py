@@ -1,12 +1,11 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Annotated, Optional
+from typing import List, Annotated, Optional, Dict, Any
 from backend import models
 from backend.database import engine, SessionLocal
 from sqlalchemy.orm import Session
-from backend.matcher.match_resume import match_resume
-from backend.matcher.hybrid_matcher import hybrid_match
+from backend.matcher.hybrid_matcher import hybrid_match, downstream_match
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -146,6 +145,21 @@ async def hybrid_match_resume_endpoint(
 ):
     try:
         results = hybrid_match(request.resume_text, request.job_desc, db)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class DownstreamMatchRequest(BaseModel):
+    resume_text: str
+    hybrid_matches: List[Dict[str, Any]]
+
+@app.post("/api/downstream-match-resume/")
+async def downstream_match_resume(
+    request: DownstreamMatchRequest,
+    db: db_dependency
+):
+    try:
+        results = downstream_match(request.resume_text, request.hybrid_matches, db)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
