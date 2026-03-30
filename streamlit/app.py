@@ -15,22 +15,42 @@ from ui.components import (
     render_test_section,
 )
 
+# ── Page config ───────────────────────────────────────────────────────────────
+
 st.set_page_config(
     page_title="CareerAlign",
     page_icon=":briefcase:",
     layout="wide"
 )
 
-# Load font separately first
+# ── Load styles ───────────────────────────────────────────────────────────────
+
 st.markdown(
     '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">',
     unsafe_allow_html=True
 )
-
-# Then load styles
 st.markdown(load_styles(), unsafe_allow_html=True)
 
 render_page_header()
+
+# ── Initialize session state ──────────────────────────────────────────────────
+
+if "resume_text" not in st.session_state:
+    st.session_state.resume_text = None
+
+if "analysis_done" not in st.session_state:
+    st.session_state.analysis_done = False
+
+if "hybrid_data" not in st.session_state:
+    st.session_state.hybrid_data = None
+
+if "downstream_done" not in st.session_state:
+    st.session_state.downstream_done = False
+
+if "posting_data" not in st.session_state:
+    st.session_state.posting_data = None
+
+# ── File upload ───────────────────────────────────────────────────────────────
 
 uploaded_file = st.file_uploader(
     "Upload your resume",
@@ -39,53 +59,106 @@ uploaded_file = st.file_uploader(
     help="PDF or DOCX, max 10 MB"
 )
 
-if uploaded_file:
-    st.success(f"**{uploaded_file.name}** uploaded successfully.")
+# Parse resume ONLY once per upload
+if uploaded_file and st.session_state.resume_text is None:
+    with st.spinner("Parsing resume..."):
+        st.session_state.resume_text = parse_with_llama(uploaded_file)
 
-generate = st.button("Analyze my resume")
+    # Reset downstream state on new upload
+    st.session_state.analysis_done = False
+    st.session_state.downstream_done = False
+    st.session_state.hybrid_data = None
+    st.session_state.posting_data = None
 
-# ── Main results ──────────────────────────────────────────────────────────────
+# ── Analyze button ────────────────────────────────────────────────────────────
 
-if generate:
+if st.button("Analyze my resume"):
     if not uploaded_file:
         st.error("Please upload your resume first.")
     else:
         with st.spinner("Analyzing your resume…"):
-            resume_text = parse_with_llama(uploaded_file)
-            response = requests.post(
-                "http://localhost:8000/api/hybrid-match-resume/",
-                json={"resume_text": resume_text}
-            )
-
-        if response.status_code != 200:
-            st.error(f"Backend error {response.status_code}: {response.text}")
-        else:
-            data = response.json()
-            insights = data.get("insights")
-
-            sidebar_col, main_col = st.columns([1, 2.8], gap="large")
-
-            with sidebar_col:
-                if insights:
-                    render_insight_sidebar(insights)
-                else:
-                    st.warning("AI insights unavailable.")
-
-            with main_col:
-                render_match_section(
-                    "Career matches",
-                    data.get("hybrid_matches", []),
-                    thresholds=(50, 25),
+            try:
+                response = requests.post(
+                    "http://localhost:8000/api/hybrid-match-resume/",
+                    json={"resume_text": st.session_state.resume_text},
+                    timeout=60
                 )
+                response.raise_for_status()
+                st.session_state.hybrid_data = response.json()
+                st.session_state.analysis_done = True
 
-                postings = data.get("posting_matches", [])
-                if postings:
-                    st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
-                    render_match_section(
-                        "Job postings",
-                        postings,
-                        thresholds=(70, 40),
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection error: {e}")
+
+# ── Render main results ───────────────────────────────────────────────────────
+
+if st.session_state.analysis_done and st.session_state.hybrid_data:
+
+    data = st.session_state.hybrid_data
+    insights = data.get("insights")
+    hybrid_matches = data.get("hybrid_matches", [])
+
+    sidebar_col, main_col = st.columns([1, 2.8], gap="large")
+
+    with sidebar_col:
+        if insights:
+            render_insight_sidebar(insights)
+        else:
+            st.warning("AI insights unavailable.")
+
+    with main_col:
+        render_match_section(
+            "Career matches",
+            hybrid_matches,
+            thresholds=(50, 25),
+        )
+
+        # ── Downstream button ───────────────────────────────────────────────
+
+        if st.button(
+            "Continue analysis with job postings",
+            disabled=st.session_state.downstream_done
+        ):
+            with st.spinner("Analyzing job postings…"):
+                try:
+                    response = requests.post(
+                        "http://localhost:8000/api/downstream-match-resume/",
+                        json={
+                            "resume_text": st.session_state.resume_text,
+                            "hybrid_matches": hybrid_matches
+                        },
+                        timeout=180
                     )
+                    response.raise_for_status()
+                    st.session_state.posting_data = response.json()
+                    st.session_state.downstream_done = True
+
+                except requests.exceptions.RequestException as e:
+                    st.error(f"Connection error: {e}")
+
+        # ── Show downstream results if available ────────────────────────────
+
+    if st.session_state.downstream_done and st.session_state.posting_data:
+        data = st.session_state.posting_data
+        insights = data.get("insights")
+        posting_matches = data.get("posting_matches", [])
+
+        sidebar_col, main_col = st.columns([1, 2.8], gap="large")
+
+        with sidebar_col:
+            if insights:
+                render_insight_sidebar(insights)
+            else:
+                st.warning("AI insights unavailable.")
+
+        with main_col:
+            if posting_matches:
+                st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
+                render_match_section(
+                    "Job postings",
+                    posting_matches,
+                    thresholds=(70, 40),
+                )
 
 # ── Custom job description tester ────────────────────────────────────────────
 
@@ -98,36 +171,39 @@ custom_jd = st.text_area(
     label_visibility="collapsed"
 )
 
-test_btn = st.button("Test this job description")
-
-if test_btn:
+if st.button("Test this job description"):
     if not uploaded_file:
         st.error("Please upload your resume before testing.")
     elif not custom_jd.strip():
         st.error("Please enter a job description.")
     else:
         with st.spinner("Running matcher…"):
-            resume_text = parse_with_llama(uploaded_file)
-            response = requests.post(
-                "http://localhost:8000/api/hybrid-match-resume/",
-                json={"resume_text": resume_text, "job_desc": custom_jd}
-            )
-
-        if response.status_code != 200:
-            st.error(f"Backend error {response.status_code}: {response.text}")
-        else:
-            data = response.json()
-            col1, col2 = st.columns(2, gap="medium")
-
-            with col1:
-                render_match_section(
-                    "Semantic match (SBERT)",
-                    data.get("sbert_matches", []),
-                    thresholds=(70, 40),
+            try:
+                response = requests.post(
+                    "http://localhost:8000/api/hybrid-match-resume/",
+                    json={
+                        "resume_text": st.session_state.resume_text,
+                        "job_desc": custom_jd
+                    },
+                    timeout=30
                 )
-            with col2:
-                render_match_section(
-                    "Keyword match (TF-IDF)",
-                    data.get("tfidf_matches", []),
-                    thresholds=(30, 10),
-                )
+                response.raise_for_status()
+                data = response.json()
+
+                col1, col2 = st.columns(2, gap="medium")
+
+                with col1:
+                    render_match_section(
+                        "Semantic match (SBERT)",
+                        data.get("sbert_matches", []),
+                        thresholds=(70, 40),
+                    )
+                with col2:
+                    render_match_section(
+                        "Keyword match (TF-IDF)",
+                        data.get("tfidf_matches", []),
+                        thresholds=(30, 10),
+                    )
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection error: {e}")
