@@ -38,6 +38,9 @@ render_page_header()
 if "resume_text" not in st.session_state:
     st.session_state.resume_text = None
 
+if "uploaded_file_id" not in st.session_state:       
+    st.session_state.uploaded_file_id = None
+
 if "analysis_done" not in st.session_state:
     st.session_state.analysis_done = False
 
@@ -60,15 +63,20 @@ uploaded_file = st.file_uploader(
 )
 
 # Parse resume ONLY once per upload
-if uploaded_file and st.session_state.resume_text is None:
-    with st.spinner("Parsing resume..."):
-        st.session_state.resume_text = parse_with_llama(uploaded_file)
+if uploaded_file:
+    file_id = (uploaded_file.name, uploaded_file.size)
 
-    # Reset downstream state on new upload
-    st.session_state.analysis_done = False
-    st.session_state.downstream_done = False
-    st.session_state.hybrid_data = None
-    st.session_state.posting_data = None
+    if file_id != st.session_state.uploaded_file_id:
+
+        with st.spinner("Parsing resume..."):
+            st.session_state.resume_text = parse_with_llama(uploaded_file)
+            st.session_state.uploaded_file_id = file_id # Update the uploaded file ID to prevent re-parsing on reruns
+
+        # Reset downstream state on new upload
+        st.session_state.analysis_done = False
+        st.session_state.downstream_done = False
+        st.session_state.hybrid_data = None
+        st.session_state.posting_data = None
 
 # ── Analyze button ────────────────────────────────────────────────────────────
 
