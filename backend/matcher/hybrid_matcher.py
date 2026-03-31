@@ -6,6 +6,7 @@ from backend import models
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from data.scripts.preprocessor_sbert import SBERTPreprocessor
 from backend.services.sbert_embedder import SBERTEmbeddingService
+import matplotlib.pyplot as plt
 
 def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
 
@@ -106,10 +107,10 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
     hybrid_matches = hybrid_rank_jobs(
         top_jobs_tfidf,
         top_jobs_sbert
-    )[:10]
-
+    )
     # Create LLM prompt
-    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=hybrid_matches)
+    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=hybrid_matches[:10]
+)
     # Generate insights using LLM
     try:
         insights_text = generate_resume_insights(prompt)
@@ -121,10 +122,32 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         print(f"Failed to parse insights JSON: {e}")
         insights = None
 
+    # # For score distribution histogram
+    # # Extract scores
+    # tfidf_scores_raw = [job["similarity"] for job in top_jobs_tfidf]
+    # sbert_scores_raw = [job["similarity"] for job in top_jobs_sbert]
+    # tfidf_scores = normalize_array(tfidf_scores_raw)
+    # sbert_scores = normalize_array(sbert_scores_raw)
+    # hybrid_scores = [job["hybrid_score"] for job in hybrid_matches]
+    # plt.figure()
+
+    # plt.hist(tfidf_scores, bins=20, alpha=0.5, label="TF-IDF")
+    # plt.hist(sbert_scores, bins=20, alpha=0.5, label="SBERT")
+    # plt.hist(hybrid_scores, bins=20, alpha=0.5, label="Hybrid")
+
+    # plt.xlabel("Normalized Similarity Score")
+    # plt.ylabel("Frequency")
+    # plt.title("Comparison of Matching Score Distributions")
+
+    # plt.legend()
+
+    # plt.savefig("model_comparison_hist.png", dpi=300, bbox_inches='tight')
+    # plt.close()
+
     return {
         "tfidf_matches": top_jobs_tfidf,
         "sbert_matches": top_jobs_sbert,
-        "hybrid_matches": hybrid_matches,
+        "hybrid_matches": hybrid_matches[:10],
         "insights": insights
     }
 
