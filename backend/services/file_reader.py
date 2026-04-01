@@ -23,7 +23,7 @@ def parse_with_llama(file):
     try:
         from llama_parse import LlamaParse
         parser = LlamaParse(
-            api_key="llx-FbXeScgjqS6NQrSxwn9b2ei28jg3jNKIP8otw0mAgzAkEHec",
+            api_key=LLAMA_API_KEY,
             result_type="markdown",  
             verbose=True
         )
