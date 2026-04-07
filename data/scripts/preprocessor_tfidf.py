@@ -76,14 +76,14 @@ class TFIDFPreprocessor:
         stemmed_words = [self.stem_word(word) for word in filtered_text.split()]
         filtered_text = " ".join(stemmed_words)
 
-        # Only comment this out when posting resumes and job postings to database
-        # Lemmatization
-        nlp = spacy.load('en_core_web_sm', disable=["parser", "ner"])
-        doc = nlp(filtered_text)
-        lemmatized_text = " ".join([token.lemma_ for token in doc])
+        # # Only comment this out when posting resumes and job postings to database
+        # # Lemmatization
+        # nlp = spacy.load('en_core_web_sm', disable=["parser", "ner"])
+        # doc = nlp(filtered_text)
+        # lemmatized_text = " ".join([token.lemma_ for token in doc])
 
-        # Remove extra whitespace
-        filtered_text = " ".join(lemmatized_text.split())
+        # # Remove extra whitespace
+        # filtered_text = " ".join(lemmatized_text.split())
 
         return filtered_text.strip()
 
