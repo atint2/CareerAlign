@@ -1,29 +1,22 @@
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Annotated, Optional, Dict, Any
 from backend import models
 from backend.database import engine, SessionLocal
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from backend.matcher.hybrid_matcher import hybrid_match, downstream_match
 
 # Initialize FastAPI app
 app = FastAPI()
+
+# Create vector extension in PostgreSQL if it doesn't exist
+with engine.connect() as connection:
+    connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+    connection.commit()
+
+# Create database tables based on the defined SQLAlchemy models
 models.Base.metadata.create_all(bind=engine) # Create database tables in PostgreSQL
-
-# Set up CORS middleware to allow requests from the frontend
-origins = [
-    "http://localhost:5173"
-]
-
-# Add CORS middleware to the FastAPI application
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"], # Allow all HTTP methods
-    allow_headers=["*"], # Allow all headers
-)
 
 @app.get('/api/ping')
 async def ping():
