@@ -54,18 +54,6 @@ class Cluster(Base):
     general_job_desc_tfidf = Column(String, nullable=True)
     num_postings = Column(Integer, nullable=False)
 
-# FOR DIRECT COMPARISON
-class ClusterExperimental(Base):
-    __tablename__ = "clusters_experimental"
-
-    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    cluster_id = Column(Integer, nullable=False, unique=True)
-    title = Column(String, nullable=True)
-    general_job_desc_raw = Column(String, nullable=True)
-    general_job_desc_sbert = Column(String, nullable=True)
-    general_job_desc_tfidf = Column(String, nullable=True)
-    num_postings = Column(Integer, nullable=False)
-
 class ClusterEmbeddingTFIDF(Base):
     __tablename__ = "cluster_embeddings_tfidf"
 
@@ -73,28 +61,12 @@ class ClusterEmbeddingTFIDF(Base):
     embedding = Column(Vector(5000), nullable=False)
     cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
 
-# FOR DIRECT COMPARISON
-class ClusterEmbeddingTFIDFExperimental(Base):
-    __tablename__ = "cluster_embeddings_tfidf_experimental"
-
-    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    embedding = Column(Vector(5000), nullable=False)
-    cluster_id = Column(Integer, ForeignKey("clusters_experimental.id", ondelete="CASCADE"), nullable=False, index=True)
-
 class ClusterEmbeddingSBERT(Base):
     __tablename__ = "cluster_embeddings_sbert"
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     embedding = Column(Vector(384), nullable=False)
     cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
-
-# FOR DIRECT COMPARISON
-class ClusterEmbeddingSBERTExperimental(Base):
-    __tablename__ = "cluster_embeddings_sbert_experimental"
-
-    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    embedding = Column(Vector(384), nullable=False)
-    cluster_id = Column(Integer, ForeignKey("clusters_experimental.id", ondelete="CASCADE"), nullable=False, index=True)
 
 class Resume(Base):
     __tablename__ = "resumes"
