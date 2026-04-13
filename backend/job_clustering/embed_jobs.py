@@ -5,20 +5,25 @@ from backend.config import EMBEDDING_MODEL
 from backend.services.sbert_embedder import SBERTEmbeddingService
 from backend.services.fit_tf_idf_vectorizer import load_vectorizer
 import asyncio
+import requests
 
 async def save_job_embeddings(job_ids: list[int], embeddings: np.ndarray, model_version: str, db_session):
-    # Use endpoint in main.py to save embeddings
-    from backend.main import create_job_posting_embedding
-    from backend.main import SBERTEmbeddingBase
-    for job_id, embedding in zip(job_ids, embeddings):
-        embedding_obj = SBERTEmbeddingBase(
+    if len(job_ids) != len(embeddings):
+        raise ValueError("job_ids and embeddings must have the same length")
+
+    db_embeddings = [
+        models.JobEmbeddingSBERT(
             embedding=embedding.tolist(),
             model_version=model_version,
             job_posting_id=job_id
         )
+        for job_id, embedding in zip(job_ids, embeddings)
+    ]
 
-        await create_job_posting_embedding(embedding_obj, db_session)
-    print(f"Saved {len(job_ids)} job embeddings to the database.")
+    db_session.add_all(db_embeddings)  # bulk insert
+    db_session.commit()
+
+    print(f"Saved {len(db_embeddings)} SBERT embeddings to the database.")
 
 async def main():
     SessionLocal = database.SessionLocal
@@ -42,36 +47,36 @@ async def main():
     except Exception as e:
         print("Exception during SBERT embedding or DB insertion:", e)
     
-    # try:
-    #     # Fetch all job postings with TF-IDF descriptions
-    #     job_postings = db_session.query(models.JobPosting).filter(
-    #         models.JobPosting.desc_tfidf.isnot(None)
-    #     ).all()
+    try:
+        # Fetch all job postings with TF-IDF descriptions
+        job_postings = db_session.query(models.JobPosting).filter(
+            models.JobPosting.desc_tfidf.isnot(None)
+        ).all()
 
-    #     job_descriptions = [job.desc_tfidf for job in job_postings]
+        job_descriptions = [job.desc_tfidf for job in job_postings]
 
-    #     print(f"Embedding {len(job_descriptions)} job descriptions using TF-IDF...")
+        print(f"Embedding {len(job_descriptions)} job descriptions using TF-IDF...")
 
-    #     # Load the fitted TF-IDF vectorizer
-    #     embedding_service = load_vectorizer("tfidf_vectorizer.pkl")
+        # Load the fitted TF-IDF vectorizer
+        embedding_service = load_vectorizer("tfidf_vectorizer.pkl")
 
-    #     # Transform job descriptions and save embeddings to DB
-    #     tfidf_vectors = embedding_service.transform(job_descriptions).toarray()
+        # Transform job descriptions and save embeddings to DB
+        tfidf_vectors = embedding_service.transform(job_descriptions).toarray()
 
-    #     for job, vector in zip(job_postings, tfidf_vectors):
-    #         embedding_obj = models.JobEmbeddingTFIDF(
-    #             embedding=vector.tolist(),
-    #             job_posting_id=job.id
-    #         )
+        for job, vector in zip(job_postings, tfidf_vectors):
+            embedding_obj = models.JobEmbeddingTFIDF(
+                embedding=vector.tolist(),
+                job_posting_id=job.id
+            )
 
-    #         db_session.add(embedding_obj)
+            db_session.add(embedding_obj)
 
-    #     db_session.commit()
+        db_session.commit()
 
-    #     print(f"Saved {len(job_descriptions)} job embeddings to the database.")
+        print(f"Saved {len(job_descriptions)} job embeddings to the database.")
         
-    # except Exception as e:
-    #     print("Exception during TF-IDF transformation or DB insertion:", e)
+    except Exception as e:
+        print("Exception during TF-IDF transformation or DB insertion:", e)
 
 if __name__ == "__main__":
   asyncio.run(main())

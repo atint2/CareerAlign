@@ -22,8 +22,8 @@ def main():
 
     try:
         # Fetch all job descriptions
-        job_descs = db_session.query(models.ClusterExperimental).filter(
-            models.ClusterExperimental.general_job_desc_tfidf.isnot(None)
+        job_descs = db_session.query(models.Cluster).filter(
+            models.Cluster.general_job_desc_tfidf.isnot(None)
         ).all()
     except Exception as e:
         print("Exception during database retrieval:", e)
@@ -39,7 +39,7 @@ def main():
         # Check for existing cluster embeddings to avoid duplicates
         existing_cluster_ids = {
             e.cluster_id
-            for e in db_session.query(models.ClusterEmbeddingTFIDFExperimental.cluster_id).all()
+            for e in db_session.query(models.ClusterEmbeddingTFIDF.cluster_id).all()
         }
 
         # Transform job descriptions and save embeddings to DB
@@ -50,7 +50,7 @@ def main():
             tfidf_vector = embedding_service.transform([cluster.general_job_desc_tfidf])
             embedding_vector = tfidf_vector.toarray()[0].tolist()
 
-            embedding_obj = models.ClusterEmbeddingTFIDFExperimental(
+            embedding_obj = models.ClusterEmbeddingTFIDF(
                 embedding=embedding_vector,
                 cluster_id=cluster.id
             )
@@ -70,7 +70,7 @@ def main():
         # Check for existing cluster embeddings to avoid duplicates
         existing_cluster_ids = {
             e.cluster_id
-            for e in db_session.query(models.ClusterEmbeddingSBERTExperimental.cluster_id).all()
+            for e in db_session.query(models.ClusterEmbeddingSBERT.cluster_id).all()
         }
 
         for cluster in job_descs:
@@ -79,7 +79,7 @@ def main():
 
             sbert_embedding = embedding_service.embed([cluster.general_job_desc_sbert])[0].tolist()
 
-            embedding_obj = models.ClusterEmbeddingSBERTExperimental(
+            embedding_obj = models.ClusterEmbeddingSBERT(
                 embedding=sbert_embedding,
                 cluster_id=cluster.id
             )

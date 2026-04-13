@@ -18,20 +18,19 @@ def save_reduced_job_embeddings(embedding_ids: list[int], reduced_embeddings: np
         print("ReducedEmbedding table is not empty. Skipping save to avoid duplicates.")
         return
     
-    for job_embedding_id, reduced_embedding in zip(embedding_ids, reduced_embeddings):
-        # Ensure reduced_embedding matches Vector(15) size
-        if len(reduced_embedding) != 15:
-            raise ValueError(f"Expected 15 dimensions, got {len(reduced_embedding)}")
-        
-        db_reduced_embedding = models.ReducedEmbedding(
+    reduced_embeddings = [
+        models.ReducedEmbedding(
             reduced_embedding=reduced_embedding.tolist(),
             model_version=model_version,
             job_embedding_id=job_embedding_id,
             reduction_method=reduction_method
         )
-        db_session.add(db_reduced_embedding)
-    
+        for job_embedding_id, reduced_embedding in zip(embedding_ids, reduced_embeddings)
+    ]
+
+    db_session.add_all(reduced_embeddings)  # bulk insert
     db_session.commit()
+    
     print(f"Saved {len(embedding_ids)} reduced job embeddings to the database.")
 
 def main():

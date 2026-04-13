@@ -160,8 +160,8 @@ def main():
             sample_descs = [r.desc_sbert for r in cluster_rows if r.desc_sbert]
 
             existing = (
-                db_session.query(models.ClusterExperimental)
-                .filter(models.ClusterExperimental.cluster_id == int(cid))
+                db_session.query(models.Cluster)
+                .filter(models.Cluster.cluster_id == int(cid))
                 .one_or_none()
             )
             if existing:

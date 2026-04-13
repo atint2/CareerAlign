@@ -1,34 +1,36 @@
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Annotated, Optional, Dict, Any
 from backend import models
 from backend.database import engine, SessionLocal
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from backend.matcher.hybrid_matcher import hybrid_match, downstream_match
 
 # Initialize FastAPI app
 app = FastAPI()
-models.Base.metadata.create_all(bind=engine) # Create database tables in PostgreSQL
 
-# Set up CORS middleware to allow requests from the frontend
-origins = [
-    "http://localhost:5173"
-]
+# Create vector extension in PostgreSQL if it doesn't exist
+with engine.connect() as connection:
+    connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+    connection.commit()
 
-# Add CORS middleware to the FastAPI application
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"], # Allow all HTTP methods
-    allow_headers=["*"], # Allow all headers
-)
+# Create database tables based on the defined SQLAlchemy models
+models.Base.metadata.create_all(bind=engine)
 
+# Enable RLS on all tables
+tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", "cluster_embeddings_sbert", "resumes"]
+with engine.connect() as connection:
+    for table in tables:
+        connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
+    connection.commit()
+
+# Endpoint for health check
 @app.get('/api/ping')
 async def ping():
     return {'message': 'Hello from Python backend!'}
 
+# Pydantic models for request and response validation
 class PostingBase(BaseModel):
     job_id: str
     title: str
@@ -74,6 +76,7 @@ class ResumeBase(BaseModel):
     content_sbert: Optional[str] = None
     content_tfidf: Optional[str] = None
 
+# Dependency to get DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -88,22 +91,6 @@ db_dependency = Annotated[Session, Depends(get_db)]
 async def get_job_postings(db: db_dependency):
     postings = db.query(models.JobPosting).all()
     return postings
-
-# Endpoint to create a new job posting
-@app.post('/api/postings/')
-async def create_job_posting(JobPosting: PostingBase, db: db_dependency):
-    db_posting = models.JobPosting(job_id=JobPosting.job_id,
-                                    title=JobPosting.title,
-                                    desc_raw=JobPosting.desc_raw,
-                                    desc_sbert=JobPosting.desc_sbert,
-                                    desc_tfidf=JobPosting.desc_tfidf,
-                                    formatted_work_type=JobPosting.formatted_work_type,
-                                    company=JobPosting.company,
-                                    formatted_experience_level=JobPosting.formatted_experience_level)
-    db.add(db_posting)
-    db.commit()
-    db.refresh(db_posting)
-    return db_posting
     
 # Endpoint to retrieve all job embeddings
 @app.get('/api/embeddings/', response_model=List[SBERTEmbeddingBase])

@@ -45,7 +45,7 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
         }]
         
     # Load all job embeddings from cluster_embeddings table
-    job_embeddings = db_session.query(models.ClusterEmbeddingTFIDFExperimental).all()
+    job_embeddings = db_session.query(models.ClusterEmbeddingTFIDF).all()
     if not job_embeddings:
         return []
 
@@ -60,8 +60,8 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
 
     top_matches = []
     # Fetch all clusters
-    clusters = db_session.query(models.ClusterExperimental).filter(
-    models.ClusterExperimental.id.in_(cluster_ids)
+    clusters = db_session.query(models.Cluster).filter(
+    models.Cluster.id.in_(cluster_ids)
     ).all()
 
     cluster_map = {c.id: c for c in clusters}
@@ -103,7 +103,7 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
         }]
 
     # Load all cluster embeddings from database
-    cluster_embeddings = db_session.query(models.ClusterEmbeddingSBERTExperimental).all()
+    cluster_embeddings = db_session.query(models.ClusterEmbeddingSBERT).all()
     if not cluster_embeddings:
         return []
     
@@ -118,7 +118,7 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
 
     top_matches = []
     for idx in top_indices:
-        cluster = db_session.query(models.ClusterExperimental).filter(models.ClusterExperimental.id == cluster_ids[idx]).first()
+        cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
         top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
         missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
         top_matches.append({

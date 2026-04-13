@@ -141,13 +141,14 @@ def main():
         print("Number of clusters after merging similar ones:", num_clusters)
 
         # Bulk update cluster IDs for job postings 
-        for row, label in zip(rows, cluster_labels): 
-            db_session.query(models.JobPosting).filter( 
-                models.JobPosting.id == row.job_posting_id 
-            ).update( 
-                {"cluster_id": None if label == -1 else int(label)}, 
-                synchronize_session=False, 
-            ) 
+        updates = [
+            {
+                "id": row.job_posting_id,
+                "cluster_id": None if label == -1 else int(label),
+            }
+            for row, label in zip(rows, cluster_labels)
+        ]
+        db_session.bulk_update_mappings(models.JobPosting, updates)
 
         # Update DB with cluster information
         # Count postings by cluster
@@ -155,24 +156,20 @@ def main():
             label for label in cluster_labels if label != -1
         )
 
-        for cid, count in cluster_counts.items():
-            existing = (
-                db_session.query(models.ClusterExperimental)
-                .filter(models.ClusterExperimental.cluster_id == int(cid))
-                .one_or_none()
-            )
+        existing_clusters = {
+            c.cluster_id: c
+            for c in db_session.query(models.Cluster).all()
+        }
 
-            if existing:
-                # Update count (and keep description if already generated)
-                existing.num_postings = count
+        for cid, count in cluster_counts.items():
+            if cid in existing_clusters:
+                existing_clusters[cid].num_postings = count
             else:
-                # Create new cluster row
-                new_cluster = models.ClusterExperimental(
+                db_session.add(models.Cluster(
                     cluster_id=int(cid),
-                    general_job_desc_raw=None,   # fill later with LLM
+                    general_job_desc_raw=None,
                     num_postings=count,
-                )
-                db_session.add(new_cluster)
+                ))
         
         db_session.commit() 
 

@@ -34,10 +34,10 @@ def save_job_postings_to_db(dataset_filepath):
 	try:
 		# Filter existing ids to avoid duplicates
 		existing = set(
-			r[0] for r in session.query(models.JobPosting.job_id).all()
+			str(r[0]) for r in session.query(models.JobPosting.job_id).all()
 		)
 
-		df_new = df[~df["job_id"].isin(existing)].copy()
+		df_new = df[~df["job_id"].astype(str).isin(existing)].copy()
 
 		print(f"Found {len(df)} total rows.")
 		print(f"{len(df_new)} new rows to process.")
