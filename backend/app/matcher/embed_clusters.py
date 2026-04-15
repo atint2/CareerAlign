@@ -1,7 +1,8 @@
 import pickle
-from backend.services.tf_idf_embedder import TFIDFEmbeddingService
-from backend.services.sbert_embedder import SBERTEmbeddingService
-from backend import database, models
+from backend.app import database
+from backend.app.services.tf_idf_embedder import TFIDFEmbeddingService
+from backend.app.services.sbert_embedder import SBERTEmbeddingService
+from backend.app import models
 
 def load_vectorizer(path="tfidf_vectorizer.pkl"):
     """

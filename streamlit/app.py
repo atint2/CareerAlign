@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.services.file_reader import parse_with_llama
+from backend.app.services.file_reader import parse_with_llama
 from ui.styles import load_styles
 from ui.components import (
     render_page_header,

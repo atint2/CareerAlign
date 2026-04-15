@@ -1,9 +1,9 @@
 import numpy as np
-import backend.database as database
-import backend.models as models
-from backend.config import EMBEDDING_MODEL
-from backend.services.sbert_embedder import SBERTEmbeddingService
-from backend.services.fit_tf_idf_vectorizer import load_vectorizer
+import backend.app.database as database
+import backend.app.models as models
+from backend.app.config import EMBEDDING_MODEL
+from backend.app.services.sbert_embedder import SBERTEmbeddingService
+from backend.app.services.fit_tf_idf_vectorizer import load_vectorizer
 import asyncio
 import requests
 

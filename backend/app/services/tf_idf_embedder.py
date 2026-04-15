@@ -3,7 +3,7 @@ Service for embedding documents using TF-IDF
 """
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from backend.config import CUSTOM_STOPWORDS
+from backend.app.config import CUSTOM_STOPWORDS
 
 class TFIDFEmbeddingService:
     """

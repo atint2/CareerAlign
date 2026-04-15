@@ -1,5 +1,5 @@
 from google import genai
-from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords, find_missing_keywords
+from backend.app.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords, find_missing_keywords
 import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -297,12 +297,12 @@ def generate_resume_insights(prompt):
                 raise RuntimeError(f"LLM generation failed: {e}")
 
 def match_resume(resume_text: str, job_desc: str | None, db_session):
-    from backend import models
+    from backend.app import models
 
     # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        from backend.services.sbert_embedder import SBERTEmbeddingService
+        from backend.app.services.sbert_embedder import SBERTEmbeddingService
         sbert_service = SBERTEmbeddingService()
     except Exception as e:
         print("Exception loading embedding services:", e)

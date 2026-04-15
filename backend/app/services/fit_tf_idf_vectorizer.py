@@ -1,7 +1,8 @@
 import pickle
-from backend.services.tf_idf_embedder import TFIDFEmbeddingService
-from backend import database, models
-from backend.config import CUSTOM_STOPWORDS
+from backend.app import database
+from backend.app.services.tf_idf_embedder import TFIDFEmbeddingService
+from backend.app import models
+from backend.app.config import CUSTOM_STOPWORDS
 import numpy as np
 
 def fit_and_save_vectorizer():
@@ -33,7 +34,7 @@ def load_vectorizer(path="tfidf_vectorizer.pkl"):
     with open(path, "rb") as f:
         vectorizer = pickle.load(f)
     # Wrap into your embedding service
-    from backend.services.tf_idf_embedder import TFIDFEmbeddingService
+    from backend.app.services.tf_idf_embedder import TFIDFEmbeddingService
     embedding_service = TFIDFEmbeddingService()
     embedding_service.vectorizer = vectorizer
     return embedding_service

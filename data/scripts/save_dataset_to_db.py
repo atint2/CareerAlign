@@ -6,11 +6,13 @@ The script will skip rows whose `job_id` already exist in the database to avoid 
 from pathlib import Path
 import sys
 from dotenv import load_dotenv
+
+from backend.app import database
 load_dotenv() 
 from tqdm import tqdm
 tqdm.pandas()
 import pandas as pd
-from backend import database, models
+from backend.app import models
 
 def save_job_postings_to_db(dataset_filepath):
 	# Read CSV

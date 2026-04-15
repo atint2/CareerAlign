@@ -1,11 +1,11 @@
 from typing import Optional, List, Dict, Any
 import json
-from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights, normalize_array, rank_jobs_within_clusters
-from backend.services.fit_tf_idf_vectorizer import load_vectorizer
-from backend import models
+from backend.app.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights, normalize_array, rank_jobs_within_clusters
+from backend.app.services.fit_tf_idf_vectorizer import load_vectorizer
+from backend.app import models
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from data.scripts.preprocessor_sbert import SBERTPreprocessor
-from backend.services.sbert_embedder import SBERTEmbeddingService
+from backend.app.services.sbert_embedder import SBERTEmbeddingService
 import matplotlib.pyplot as plt
 
 def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):

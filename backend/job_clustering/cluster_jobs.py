@@ -1,7 +1,7 @@
 import hdbscan 
-from backend.config import HDBSCAN_PARAMS 
-import backend.database as database
-import backend.models as models
+from backend.app.config import HDBSCAN_PARAMS 
+import backend.app.database as database
+import backend.app.models as models
 from collections import Counter
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics.pairwise import cosine_similarity

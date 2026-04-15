@@ -3,7 +3,7 @@ Service for embedding documents using SBERT
 """
 
 from sentence_transformers import SentenceTransformer
-from backend.config import EMBEDDING_MODEL
+from backend.app.config import EMBEDDING_MODEL
 import numpy as np
 
 class SBERTEmbeddingService:

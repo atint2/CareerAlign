@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Annotated, Optional, Dict, Any
-from backend import models
-from backend.database import engine, SessionLocal
+from backend.app import models
+from backend.app.database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from backend.matcher.hybrid_matcher import hybrid_match, downstream_match
+from backend.app.matcher.hybrid_matcher import hybrid_match, downstream_match
 
 # Initialize FastAPI app
 app = FastAPI()

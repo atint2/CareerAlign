@@ -1,9 +1,9 @@
 import umap
 import numpy as np
-from backend.config import EMBEDDING_MODEL
-from backend.config import UMAP_PARAMS
-import backend.database as database
-import backend.models as models
+from backend.app.config import EMBEDDING_MODEL
+from backend.app.config import UMAP_PARAMS
+import backend.app.database as database
+import backend.app.models as models
 
 def reduce_dimensions_umap(embeddings):
     reducer = umap.UMAP(**UMAP_PARAMS)

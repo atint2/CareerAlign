@@ -2,7 +2,8 @@ import re
 from google import genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction import text
-from backend import database, models
+from backend.app import models
+from backend.app import database
 from data.scripts.preprocessor_sbert import SBERTPreprocessor
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from collections import defaultdict
