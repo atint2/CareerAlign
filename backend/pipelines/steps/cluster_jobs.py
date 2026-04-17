@@ -1,3 +1,4 @@
+from git import db
 import hdbscan 
 from backend.app.config import HDBSCAN_PARAMS 
 import backend.app.database as database
@@ -7,7 +8,6 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np 
 
- 
 def cluster_jobs_hdbscan(reduced_embeddings): 
     if len(reduced_embeddings) == 0: 
         return np.array([]) 
@@ -49,53 +49,58 @@ def assign_outliers_with_knn(embeddings, labels):
 
     return new_labels
 
-def compute_cluster_centroids(embeddings, labels):
-    """
-    Returns:
-        dict {cluster_id: centroid_vector}
-    """
-    centroids = {}
+def update_cluster_counts(db_session, cluster_labels):
+    # Update DB with cluster information
+    # Count postings by cluster
+    cluster_counts = Counter(
+        label for label in cluster_labels if label != -1
+    )
 
-    unique_clusters = [c for c in np.unique(labels) if c != -1]
+    existing_clusters = {
+        c.cluster_id: c
+        for c in db_session.query(models.Cluster).all()
+    }
 
-    for cluster_id in unique_clusters:
-        cluster_points = embeddings[labels == cluster_id]
-        centroids[cluster_id] = cluster_points.mean(axis=0)
+    try:
+        for cid, count in cluster_counts.items():
+            if cid in existing_clusters:
+                existing_clusters[cid].num_postings = count
+            else:
+                db_session.add(models.Cluster(
+                    cluster_id=int(cid),
+                    general_job_desc_raw=None,
+                    num_postings=count,
+                ))
+        
+        db_session.commit() 
+    except Exception as e:
+        db_session.rollback()
+        print("Exception updating cluster counts:", e)
 
-    return centroids
+def update_posting_clusters(db_session, rows, cluster_labels):
+    try:
+        updates = [
+                {
+                    "id": row.job_posting_id,
+                    "cluster_id": None if label == -1 else int(label),
+                }
+                for row, label in zip(rows, cluster_labels)
+        ]
+        db_session.bulk_update_mappings(models.JobPosting, updates)
+        db_session.commit()
+    except Exception as e:
+        db_session.rollback()
+        print("Exception updating job posting clusters:", e)
 
-def merge_similar_clusters(centroids, labels, threshold=0.95):
-    """
-    Merge clusters whose centroid cosine similarity exceeds threshold.
-    Returns updated labels.
-    """
-    cluster_ids = sorted(centroids.keys())
-    centroid_matrix = np.array([centroids[c] for c in cluster_ids])
-
-    sim_matrix = cosine_similarity(centroid_matrix)
-
-    # Map each cluster to a representative cluster
-    parent = {cid: cid for cid in cluster_ids}
-
-    for i in range(len(cluster_ids)):
-        for j in range(i + 1, len(cluster_ids)):
-            if sim_matrix[i, j] > threshold:
-                parent[cluster_ids[j]] = parent[cluster_ids[i]]
-
-    # Relabel
-    new_labels = labels.copy()
-    for old, new in parent.items():
-        new_labels[labels == old] = new
-
-    return new_labels
-
-def main(): 
-    # Create new database session instance
-    SessionLocal = database.SessionLocal 
-    db_session = SessionLocal() 
-
+def run(db_session):
     # Retrieve reduced embeddings from database and cluster them 
     try: 
+        # Retrieve current cluster assignments for all job postings
+        clusters = db_session.query(models.Cluster).all()
+        if clusters:
+            print("Clusters already exist in the database. Skipping clustering step.")
+            return
+
         # Retrieve reduced embeddings along with their job posting IDs 
         rows = ( 
             db_session.query( 
@@ -114,6 +119,7 @@ def main():
             .order_by(models.ReducedEmbedding.job_embedding_id) 
             .all() 
         ) 
+
         if not rows: 
             print("No embeddings found. Nothing to cluster.") 
             return 
@@ -131,53 +137,18 @@ def main():
         # Reassign outliers using nearest neighbors
         cluster_labels = assign_outliers_with_knn(embeddings, cluster_labels)
 
-        centroids = compute_cluster_centroids(embeddings, cluster_labels)
-        # cluster_labels = merge_similar_clusters(
-        #     centroids,
-        #     cluster_labels,
-        #     threshold=0.9985,
-        # )
         num_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
         print("Number of clusters after merging similar ones:", num_clusters)
 
+        # Update cluster counts in the database
+        update_cluster_counts(db_session, cluster_labels)
+
         # Bulk update cluster IDs for job postings 
-        updates = [
-            {
-                "id": row.job_posting_id,
-                "cluster_id": None if label == -1 else int(label),
-            }
-            for row, label in zip(rows, cluster_labels)
-        ]
-        db_session.bulk_update_mappings(models.JobPosting, updates)
+        update_posting_clusters(db_session, rows, cluster_labels)
 
-        # Update DB with cluster information
-        # Count postings by cluster
-        cluster_counts = Counter(
-            label for label in cluster_labels if label != -1
-        )
-
-        existing_clusters = {
-            c.cluster_id: c
-            for c in db_session.query(models.Cluster).all()
-        }
-
-        for cid, count in cluster_counts.items():
-            if cid in existing_clusters:
-                existing_clusters[cid].num_postings = count
-            else:
-                db_session.add(models.Cluster(
-                    cluster_id=int(cid),
-                    general_job_desc_raw=None,
-                    num_postings=count,
-                ))
-        
-        db_session.commit() 
 
     except Exception as e: 
         db_session.rollback() 
         print("Exception during clustering:", e) 
     finally: 
         db_session.close() 
-
-if __name__ == "__main__": 
-    main() 

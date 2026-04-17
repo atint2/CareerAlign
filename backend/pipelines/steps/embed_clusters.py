@@ -16,11 +16,7 @@ def load_vectorizer(path="tfidf_vectorizer.pkl"):
     embedding_service.vectorizer = vectorizer
     return embedding_service
 
-def main():
-    # Initialize database session
-    SessionLocal = database.SessionLocal
-    db_session = SessionLocal()
-
+def run(db_session):
     try:
         # Fetch all job descriptions
         job_descs = db_session.query(models.Cluster).filter(

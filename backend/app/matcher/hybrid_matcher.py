@@ -6,7 +6,7 @@ from backend.app import models
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from data.scripts.preprocessor_sbert import SBERTPreprocessor
 from backend.app.services.sbert_embedder import SBERTEmbeddingService
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
 

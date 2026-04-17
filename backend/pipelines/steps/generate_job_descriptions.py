@@ -118,11 +118,7 @@ def generate_job_description(keywords, sample_titles, sample_descriptions):
                 print("LLM generation failed:", e)
                 return "Description unavailable."
 
-def main():
-    # Create new database session instance
-    SessionLocal = database.SessionLocal
-    db_session = SessionLocal()
-
+def run(db_session):
     try:
         # Retrieve descriptions + cluster IDs
         rows = (
@@ -217,13 +213,7 @@ def main():
                         # Sleep before next iteration
                         time.sleep(30)
 
-            # print(f"\nCluster {cid}")
-            # print("Top keywords:", ", ".join(keywords[cid]))
-            # print("Generated description:\n", description)
     except Exception as e:
         print("Exception:", e)
     finally:
         db_session.close()
-
-if __name__ == "__main__":
-    main()

@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Annotated, Optional, Dict, Any
@@ -7,23 +8,29 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from backend.app.matcher.hybrid_matcher import hybrid_match, downstream_match
 
-# Initialize FastAPI app
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup Logic ---
+    # Create vector extension
+    with engine.connect() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        connection.commit()
 
-# Create vector extension in PostgreSQL if it doesn't exist
-with engine.connect() as connection:
-    connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-    connection.commit()
+    # Create tables
+    models.Base.metadata.create_all(bind=engine)
 
-# Create database tables based on the defined SQLAlchemy models
-models.Base.metadata.create_all(bind=engine)
+    # Enable RLS
+    tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", 
+              "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", 
+              "cluster_embeddings_sbert", "resumes"]
+    with engine.connect() as connection:
+        for table in tables:
+            connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
+        connection.commit()
+    
+    yield
 
-# Enable RLS on all tables
-tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", "cluster_embeddings_sbert", "resumes"]
-with engine.connect() as connection:
-    for table in tables:
-        connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
-    connection.commit()
+app = FastAPI(lifespan=lifespan)
 
 # Endpoint for health check
 @app.get('/api/ping')
