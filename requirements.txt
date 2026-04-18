@@ -18,3 +18,4 @@ spacy==3.8.11
 SQLAlchemy==2.0.49
 tqdm==4.67.1
 umap_learn==0.5.11
+uvicorn==0.40.0
