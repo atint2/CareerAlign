@@ -1,5 +1,6 @@
 from google import genai
-from backend.app.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords, find_missing_keywords
+from backend.app.services.tf_idf_embedder import load_vectorizer, find_top_keywords, find_missing_keywords
+from backend.app.services.sbert_embedder import get_sbert_service
 import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -302,8 +303,7 @@ def match_resume(resume_text: str, job_desc: str | None, db_session):
     # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        from backend.app.services.sbert_embedder import SBERTEmbeddingService
-        sbert_service = SBERTEmbeddingService()
+        sbert_service = get_sbert_service()
     except Exception as e:
         print("Exception loading embedding services:", e)
     

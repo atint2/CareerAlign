@@ -1,9 +1,15 @@
+"""
+One-time script to fit the TF-IDF vectorizer on the combined corpus
+and save it to disk. Run this during setup, not at runtime.
+
+Usage:
+    python -m backend.services.fit_tf_idf_vectorizer
+"""
+
 import pickle
 from backend.app import database
 from backend.app.services.tf_idf_embedder import TFIDFEmbeddingService
 from backend.app import models
-from backend.app.config import CUSTOM_STOPWORDS
-import numpy as np
 
 def fit_and_save_vectorizer():
     # Initialize database session
@@ -29,65 +35,6 @@ def fit_and_save_vectorizer():
 
     finally:
         db_session.close()
-
-def load_vectorizer(path="tfidf_vectorizer.pkl"):
-    with open(path, "rb") as f:
-        vectorizer = pickle.load(f)
-    # Wrap into your embedding service
-    from backend.app.services.tf_idf_embedder import TFIDFEmbeddingService
-    embedding_service = TFIDFEmbeddingService()
-    embedding_service.vectorizer = vectorizer
-    return embedding_service
-
-def find_top_keywords(job_desc, resume_text):
-    """Find top keywords in job description that are most relevant to the resume."""
-    
-    embedding_service = load_vectorizer()
-    vectorizer = embedding_service.vectorizer
-
-    job_desc_vec = vectorizer.transform([job_desc])
-    resume_vec = vectorizer.transform([resume_text])
-
-    # Element-wise multiply to get shared importance
-    shared_scores = job_desc_vec.multiply(resume_vec)
-
-    # Convert to array
-    scores = shared_scores.toarray().flatten()
-
-    feature_names = vectorizer.get_feature_names_out()
-
-    # Get top scoring features
-    top_indices = scores.argsort()[::-1]
-
-    top_keywords = [
-        feature_names[idx] for idx in top_indices
-        if scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
-    ]
-
-    return top_keywords[:10]
-
-def find_missing_keywords(job_desc, resume_text):
-    """Find top keywords in job description that are absent from the resume."""
-    
-    embedding_service = load_vectorizer()
-    vectorizer = embedding_service.vectorizer
-
-    job_desc_vec = vectorizer.transform([job_desc]).toarray().flatten()
-    resume_vec = vectorizer.transform([resume_text]).toarray().flatten()
-
-    feature_names = vectorizer.get_feature_names_out()
-
-    # Keep only terms that appear in the job desc but not in the resume
-    missing_scores = np.where(resume_vec == 0, job_desc_vec, 0)
-
-    top_indices = missing_scores.argsort()[::-1]
-
-    missing_keywords = [
-        feature_names[idx] for idx in top_indices
-        if missing_scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
-    ]
-
-    return missing_keywords[:10]
 
 if __name__ == "__main__":
     fit_and_save_vectorizer()

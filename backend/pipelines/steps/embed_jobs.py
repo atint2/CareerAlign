@@ -4,8 +4,8 @@
 import numpy as np
 import backend.app.models as models
 from backend.app.config import EMBEDDING_MODEL
-from backend.app.services.sbert_embedder import SBERTEmbeddingService
-from backend.app.services.fit_tf_idf_vectorizer import load_vectorizer
+from backend.app.services.sbert_embedder import get_sbert_service
+from backend.app.services.tf_idf_embedder import load_vectorizer
 from typing import Optional
 
 def save_embeddings(job_ids: list[int], embeddings: np.ndarray, model: str, db_session, model_version: Optional[str] = None):
@@ -75,7 +75,7 @@ def run(db_session):
             job_descriptions = [jp.desc_sbert for jp in job_postings]
 
             print(f"Embedding {len(job_descriptions)} job descriptions using SBERT...")
-            embedding_service = SBERTEmbeddingService()
+            embedding_service = get_sbert_service()
             embeddings = embedding_service.embed(job_descriptions)
 
             print("Saving SBERT embeddings to database...")

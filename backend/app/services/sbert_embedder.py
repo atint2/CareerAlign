@@ -1,5 +1,6 @@
 """
 Service for embedding documents using SBERT
+Includes singleton loader
 """
 
 from sentence_transformers import SentenceTransformer
@@ -21,3 +22,11 @@ class SBERTEmbeddingService:
         embeddings = self.model.encode(texts, show_progress_bar=True, normalize_embeddings=True)
         return np.array(embeddings)
 
+# Singleton pattern to ensure only one instance of the embedding service is created
+_instance = None
+
+def get_sbert_service() -> SBERTEmbeddingService:
+    global _instance
+    if _instance is None:
+        _instance = SBERTEmbeddingService()
+    return _instance

@@ -7,6 +7,8 @@ from backend.app.database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from backend.app.matcher.hybrid_matcher import hybrid_match, downstream_match
+from backend.app.services.sbert_embedder import get_sbert_service
+from backend.app.services.tf_idf_embedder import load_vectorizer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,7 +29,11 @@ async def lifespan(app: FastAPI):
         for table in tables:
             connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
         connection.commit()
-    
+
+    # Load heavy objects once at startup
+    get_sbert_service()    # loads SBERT model into memory once
+    load_vectorizer()      # loads .pkl into memory once
+
     yield
 
 app = FastAPI(lifespan=lifespan)

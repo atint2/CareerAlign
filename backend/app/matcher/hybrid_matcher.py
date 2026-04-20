@@ -1,11 +1,11 @@
 from typing import Optional, List, Dict, Any
 import json
 from backend.app.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights, normalize_array, rank_jobs_within_clusters
-from backend.app.services.fit_tf_idf_vectorizer import load_vectorizer
+from backend.app.services.tf_idf_embedder import load_vectorizer
+from backend.app.services.sbert_embedder import get_sbert_service
 from backend.app import models
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from data.scripts.preprocessor_sbert import SBERTPreprocessor
-from backend.app.services.sbert_embedder import SBERTEmbeddingService
 # import matplotlib.pyplot as plt
 
 def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
@@ -62,7 +62,7 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
     # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        sbert_service = SBERTEmbeddingService()
+        sbert_service = get_sbert_service()
     except Exception as e:
         raise RuntimeError(f"Failed to load embedding services: {e}") from e
 
@@ -157,7 +157,7 @@ def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], db_
     # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        sbert_service = SBERTEmbeddingService()
+        sbert_service = get_sbert_service()
     except Exception as e:
         raise RuntimeError(f"Failed to load embedding services: {e}") from e
 
