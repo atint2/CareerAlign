@@ -135,3 +135,12 @@ def render_match_section(
 
     for job in matches:
         render_job_card(job, thresholds)
+
+def render_parsed_resume(resume: str) -> None:
+    st.markdown("### Parsed Resume")
+    st.text_area(
+        label="Parsed Resume Text",
+        value=resume,
+        height=400,
+        disabled=True
+    )

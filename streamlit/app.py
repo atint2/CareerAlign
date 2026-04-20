@@ -13,6 +13,7 @@ from ui.components import (
     render_insight_sidebar,
     render_match_section,
     render_test_section,
+    render_parsed_resume
 )
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -53,6 +54,9 @@ if "downstream_done" not in st.session_state:
 if "posting_data" not in st.session_state:
     st.session_state.posting_data = None
 
+if "show_resume" not in st.session_state:
+    st.session_state.show_resume = False
+
 # ── File upload ───────────────────────────────────────────────────────────────
 
 uploaded_file = st.file_uploader(
@@ -77,6 +81,16 @@ if uploaded_file:
         st.session_state.downstream_done = False
         st.session_state.hybrid_data = None
         st.session_state.posting_data = None
+
+# ── View my parsed resume button ────────────────────────────────────────────────────────────
+
+if st.button("View my parsed resume"):
+    st.session_state.show_resume = not st.session_state.show_resume
+    if not uploaded_file:
+        st.error("Please upload your resume first.")
+
+if st.session_state.show_resume and st.session_state.resume_text:
+    render_parsed_resume(st.session_state.resume_text)
 
 # ── Analyze button ────────────────────────────────────────────────────────────
 
