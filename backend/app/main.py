@@ -1,29 +1,42 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Annotated, Optional, Dict, Any
-from backend import models
-from backend.database import engine, SessionLocal
+from backend.app import models
+from backend.app.database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from backend.matcher.hybrid_matcher import hybrid_match, downstream_match
+from backend.app.matcher.hybrid_matcher import hybrid_match, downstream_match
+from backend.app.services.sbert_embedder import get_sbert_service
+from backend.app.services.tf_idf_embedder import load_vectorizer
 
-# Initialize FastAPI app
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup Logic ---
+    # Create vector extension
+    with engine.connect() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        connection.commit()
 
-# Create vector extension in PostgreSQL if it doesn't exist
-with engine.connect() as connection:
-    connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-    connection.commit()
+    # Create tables
+    models.Base.metadata.create_all(bind=engine)
 
-# Create database tables based on the defined SQLAlchemy models
-models.Base.metadata.create_all(bind=engine)
+    # Enable RLS
+    tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", 
+              "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", 
+              "cluster_embeddings_sbert", "resumes"]
+    with engine.connect() as connection:
+        for table in tables:
+            connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
+        connection.commit()
 
-# Enable RLS on all tables
-tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", "cluster_embeddings_sbert", "resumes"]
-with engine.connect() as connection:
-    for table in tables:
-        connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
-    connection.commit()
+    # Load heavy objects once at startup
+    get_sbert_service()    # loads SBERT model into memory once
+    load_vectorizer()      # loads .pkl into memory once
+
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # Endpoint for health check
 @app.get('/api/ping')
@@ -75,6 +88,11 @@ class ResumeBase(BaseModel):
     content_raw: str
     content_sbert: Optional[str] = None
     content_tfidf: Optional[str] = None
+
+class SkillBase(BaseModel):
+    skill: str
+    hot_technology: Optional[str] = None
+    in_demand: Optional[str] = None
 
 # Dependency to get DB session
 def get_db():

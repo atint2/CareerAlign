@@ -1,11 +1,11 @@
 from typing import Optional, List, Dict, Any
 import json
-from backend.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights, normalize_array, rank_jobs_within_clusters
-from backend.services.fit_tf_idf_vectorizer import load_vectorizer
-from backend import models
+from backend.app.matcher.match_resume import find_top_job_matches_tfidf, find_top_job_matches_sbert, create_llm_prompt, generate_resume_insights, normalize_array, rank_jobs_within_clusters
+from backend.app.services.tf_idf_embedder import load_vectorizer
+from backend.app.services.sbert_embedder import get_sbert_service
+from backend.app import models
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from data.scripts.preprocessor_sbert import SBERTPreprocessor
-from backend.services.sbert_embedder import SBERTEmbeddingService
 import matplotlib.pyplot as plt
 
 def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
@@ -62,7 +62,7 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
     # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        sbert_service = SBERTEmbeddingService()
+        sbert_service = get_sbert_service()
     except Exception as e:
         raise RuntimeError(f"Failed to load embedding services: {e}") from e
 
@@ -122,27 +122,27 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         print(f"Failed to parse insights JSON: {e}")
         insights = None
 
-    # # For score distribution histogram
-    # # Extract scores
-    # tfidf_scores_raw = [job["similarity"] for job in top_jobs_tfidf]
-    # sbert_scores_raw = [job["similarity"] for job in top_jobs_sbert]
-    # tfidf_scores = normalize_array(tfidf_scores_raw)
-    # sbert_scores = normalize_array(sbert_scores_raw)
-    # hybrid_scores = [job["hybrid_score"] for job in hybrid_matches]
-    # plt.figure()
+    # For score distribution histogram
+    # Extract scores
+    tfidf_scores_raw = [job["similarity"] for job in top_jobs_tfidf]
+    sbert_scores_raw = [job["similarity"] for job in top_jobs_sbert]
+    tfidf_scores = normalize_array(tfidf_scores_raw)
+    sbert_scores = normalize_array(sbert_scores_raw)
+    hybrid_scores = [job["hybrid_score"] for job in hybrid_matches]
+    plt.figure()
 
-    # plt.hist(tfidf_scores, bins=20, alpha=0.5, label="TF-IDF")
-    # plt.hist(sbert_scores, bins=20, alpha=0.5, label="SBERT")
-    # plt.hist(hybrid_scores, bins=20, alpha=0.5, label="Hybrid")
+    plt.hist(tfidf_scores, bins=20, alpha=0.5, label="TF-IDF")
+    plt.hist(sbert_scores, bins=20, alpha=0.5, label="SBERT")
+    plt.hist(hybrid_scores, bins=20, alpha=0.5, label="Hybrid")
 
-    # plt.xlabel("Normalized Similarity Score")
-    # plt.ylabel("Frequency")
-    # plt.title("Comparison of Matching Score Distributions")
+    plt.xlabel("Normalized Similarity Score")
+    plt.ylabel("Frequency")
+    plt.title("Comparison of Matching Score Distributions")
 
-    # plt.legend()
+    plt.legend()
 
-    # plt.savefig("model_comparison_hist.png", dpi=300, bbox_inches='tight')
-    # plt.close()
+    plt.savefig("model_comparison_hist.png", dpi=300, bbox_inches='tight')
+    plt.close()
 
     return {
         "tfidf_matches": top_jobs_tfidf,
@@ -157,7 +157,7 @@ def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], db_
     # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        sbert_service = SBERTEmbeddingService()
+        sbert_service = get_sbert_service()
     except Exception as e:
         raise RuntimeError(f"Failed to load embedding services: {e}") from e
 

@@ -1,25 +1,9 @@
 import pickle
-from backend.services.tf_idf_embedder import TFIDFEmbeddingService
-from backend.services.sbert_embedder import SBERTEmbeddingService
-from backend import database, models
+from backend.app.services.tf_idf_embedder import load_vectorizer
+from backend.app.services.sbert_embedder import get_sbert_service
+from backend.app import models
 
-def load_vectorizer(path="tfidf_vectorizer.pkl"):
-    """
-    Load the previously fitted TF-IDF vectorizer from disk.
-    """
-    with open(path, "rb") as f:
-        vectorizer = pickle.load(f)
-
-    # Wrap into the embedding service
-    embedding_service = TFIDFEmbeddingService()
-    embedding_service.vectorizer = vectorizer
-    return embedding_service
-
-def main():
-    # Initialize database session
-    SessionLocal = database.SessionLocal
-    db_session = SessionLocal()
-
+def run(db_session):
     try:
         # Fetch all job descriptions
         job_descs = db_session.query(models.Cluster).filter(
@@ -65,7 +49,7 @@ def main():
     
     # Embed job descriptions using SBERT and save to DB
     try:
-        embedding_service = SBERTEmbeddingService()
+        embedding_service = get_sbert_service()
 
         # Check for existing cluster embeddings to avoid duplicates
         existing_cluster_ids = {
@@ -94,6 +78,3 @@ def main():
 
     finally:
         db_session.close()
-
-if __name__ == "__main__":
-    main()

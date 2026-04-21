@@ -1,5 +1,7 @@
 from google import genai
-from backend.services.fit_tf_idf_vectorizer import load_vectorizer, find_top_keywords, find_missing_keywords
+from backend.app.services.tf_idf_embedder import load_vectorizer
+from backend.app.services.sbert_embedder import get_sbert_service
+from backend.app.matcher.keyword_feedback import get_skills_map, extract_skills, build_missing_skills
 import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -31,8 +33,14 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
     if job_desc_text:
         job_desc_vector = embedding_service.transform([job_desc_text]).toarray()
         similarity = cosine_similarity(resume_vector, job_desc_vector).flatten()[0]
-        top_keywords = find_top_keywords(job_desc_text, resume_text)
-        missing_keywords = find_missing_keywords(job_desc_text, resume_text)
+
+        # Find top skills and missing skills
+        skills_map = get_skills_map(db_session, models)
+        job_skills = extract_skills(cluster.general_job_desc_raw, skills_map)
+        resume_skills = extract_skills(resume_text, skills_map)
+        top_skills = list(job_skills & resume_skills)
+        missing_skills = build_missing_skills(job_skills - resume_skills, skills_map)
+
         return [{
             "cluster_id": "custom",
             "title": "Custom Job Description",
@@ -40,8 +48,8 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
             "similarity": float(similarity),
             "similarity_percent": round(float(similarity) * 100, 1),
             "snippet": job_desc_text[:200] + "...",
-            "top_keywords": top_keywords,
-            "missing_keywords": missing_keywords
+            "top_keywords": top_skills,
+            "missing_keywords": missing_skills
         }]
         
     # Load all job embeddings from cluster_embeddings table
@@ -68,8 +76,14 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
 
     for idx in top_indices:
         cluster = cluster_map[cluster_ids[idx]]
-        top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
-        missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
+
+        # Find top skills and missing skills
+        skills_map = get_skills_map(db_session, models)
+        job_skills = extract_skills(cluster.general_job_desc_raw, skills_map)
+        resume_skills = extract_skills(resume_text, skills_map)
+        top_skills = list(job_skills & resume_skills)
+        missing_skills = build_missing_skills(job_skills - resume_skills, skills_map)
+
         top_matches.append({
             "cluster_id": cluster.cluster_id,
             "title": cluster.title,
@@ -77,8 +91,8 @@ def find_top_job_matches_tfidf(resume_text, embedding_service, db_session, model
             "similarity": float(similarities[idx]),
             "similarity_percent": round(similarities[idx] * 100, 1),
             "snippet": cluster.general_job_desc_raw[:200] + "...",
-            "top_keywords": top_keywords,
-            "missing_keywords": missing_keywords
+            "top_keywords": top_skills,
+            "missing_keywords": missing_skills
         })
     return top_matches
 
@@ -89,8 +103,14 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
     if job_desc_text:
         job_desc_embedding = sbert_service.embed([job_desc_text])
         similarity = cosine_similarity(resume_embedding, job_desc_embedding).flatten()[0]
-        top_keywords = find_top_keywords(job_desc_text, resume_text)
-        missing_keywords = find_missing_keywords(job_desc_text, resume_text)
+
+        # Find top skills and missing skills
+        skills_map = get_skills_map(db_session, models)
+        job_skills = extract_skills(cluster.general_job_desc_raw, skills_map)
+        resume_skills = extract_skills(resume_text, skills_map)
+        top_skills = list(job_skills & resume_skills)
+        missing_skills = build_missing_skills(job_skills - resume_skills, skills_map)
+
         return [{
             "cluster_id": "custom",
             "title": "Custom Job Description",
@@ -98,8 +118,8 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
             "similarity": float(similarity),
             "similarity_percent": round(float(similarity) * 100, 1),
             "snippet": job_desc_text[:200] + "...",
-            "top_keywords": top_keywords,
-            "missing_keywords": missing_keywords
+            "top_keywords": top_skills,
+            "missing_keywords": missing_skills
         }]
 
     # Load all cluster embeddings from database
@@ -119,8 +139,13 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
     top_matches = []
     for idx in top_indices:
         cluster = db_session.query(models.Cluster).filter(models.Cluster.id == cluster_ids[idx]).first()
-        top_keywords = find_top_keywords(cluster.general_job_desc_raw, resume_text)
-        missing_keywords = find_missing_keywords(cluster.general_job_desc_raw, resume_text)
+
+        # Find top skills and missing skills
+        skills_map = get_skills_map(db_session, models)
+        job_skills = extract_skills(cluster.general_job_desc_raw, skills_map)
+        resume_skills = extract_skills(resume_text, skills_map)
+        top_skills = list(job_skills & resume_skills)
+        missing_skills = build_missing_skills(job_skills - resume_skills, skills_map)
         top_matches.append({
             "cluster_id": cluster.cluster_id,
             "title": cluster.title,
@@ -128,8 +153,8 @@ def find_top_job_matches_sbert(resume_text, sbert_service, db_session, models, t
             "similarity": float(similarities[idx]),
             "similarity_percent": round(similarities[idx] * 100, 1),
             "snippet": cluster.general_job_desc_raw[:200] + "...",
-            "top_keywords": top_keywords,
-            "missing_keywords": missing_keywords 
+            "top_keywords": top_skills,
+            "missing_keywords": missing_skills 
         })
     return top_matches
 
@@ -176,8 +201,14 @@ def rank_jobs_within_clusters(resume_text, resume_text_tfidf, resume_text_sbert,
 
     results = []
     for i, posting in enumerate(postings):
-        top_keywords = find_top_keywords(posting.desc_raw, resume_text)
-        missing_keywords = find_missing_keywords(posting.desc_raw, resume_text)
+
+        # Find top skills and missing skills
+        skills_map = get_skills_map(db_session, models)
+        job_skills = extract_skills(posting.desc_raw, skills_map)
+        resume_skills = extract_skills(resume_text, skills_map)
+        top_skills = list(job_skills & resume_skills)
+        missing_skills = build_missing_skills(job_skills - resume_skills, skills_map)
+
         results.append({
             "job_id": posting.id,
             "cluster_id": posting.cluster_id,
@@ -189,8 +220,8 @@ def rank_jobs_within_clusters(resume_text, resume_text_tfidf, resume_text_sbert,
             "sbert_similarity": float(sbert_scores[i]),
             "hybrid_score": float(hybrid_scores[i]),
             "hybrid_percent": round(float(hybrid_scores[i]) * 100, 1),
-            "top_keywords": top_keywords,
-            "missing_keywords": missing_keywords 
+            "top_keywords": top_skills,
+            "missing_keywords": missing_skills 
         })
 
     results.sort(key=lambda x: x["hybrid_score"], reverse=True)
@@ -297,13 +328,12 @@ def generate_resume_insights(prompt):
                 raise RuntimeError(f"LLM generation failed: {e}")
 
 def match_resume(resume_text: str, job_desc: str | None, db_session):
-    from backend import models
+    from backend.app import models
 
     # Load embedding services
     try:
         tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
-        from backend.services.sbert_embedder import SBERTEmbeddingService
-        sbert_service = SBERTEmbeddingService()
+        sbert_service = get_sbert_service()
     except Exception as e:
         print("Exception loading embedding services:", e)
     

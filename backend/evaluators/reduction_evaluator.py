@@ -1,6 +1,8 @@
-from backend import database, models
+from backend.app import models
 from sklearn.manifold import trustworthiness as calc_trustworthiness
 import numpy as np
+
+from backend.app import database
 
 def evaluate_reduction_quality(original_embeddings, reduced_embeddings, method_name, sample_size=5000):
     """

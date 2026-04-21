@@ -1,9 +1,12 @@
 """
 Service for embedding documents using TF-IDF
+Includes singleton loader and keyword utility functions
 """
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from backend.config import CUSTOM_STOPWORDS
+from backend.app.config import CUSTOM_STOPWORDS
+import pickle
+import numpy as np
 
 class TFIDFEmbeddingService:
     """
@@ -36,3 +39,17 @@ class TFIDFEmbeddingService:
         Convenience method.
         """
         return self.vectorizer.fit_transform(texts)
+
+# Singleton pattern to ensure only one instance of the embedding service is created
+_instance: TFIDFEmbeddingService | None = None
+
+def load_vectorizer(path="tfidf_vectorizer.pkl") -> TFIDFEmbeddingService:
+    """Load the fitted vectorizer from disk, caching it for the app lifetime."""
+    global _instance
+    if _instance is None:
+        with open(path, "rb") as f:
+            vectorizer = pickle.load(f)
+        service = TFIDFEmbeddingService()
+        service.vectorizer = vectorizer
+        _instance = service
+    return _instance

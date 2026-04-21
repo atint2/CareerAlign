@@ -51,9 +51,33 @@ def clean_resume_dataset(dataset_filepath="data/raw/resumes.csv"):
     df_cleaned.to_csv(output_filepath, index=False)
     print(f"Cleaned dataset saved to {output_filepath}")
 
+def clean_skills_dataset(dataset_filepath="data/raw/skills.csv"):
+    """
+    Cleans the input dataset by removing entries with duplicate skills and missing values for 'Example'
+    Also keeps only relevant columns.
+    Cleaned dataset is saved to a new CSV file under data/processed.
+    """    
+    df = pd.read_csv(dataset_filepath)
+
+    # Remove duplicates based on 'Resume_str' column
+    df_cleaned = df.drop_duplicates(subset=['Example'])
+
+    # Remove entries with missing resume text
+    df_cleaned = df_cleaned.dropna(subset=['Example'])
+
+    # Keep only relevant columns
+    relevant_columns = ['Example', 'Hot Technology', 'In Demand']
+    df_cleaned = df_cleaned[relevant_columns]
+
+    # Save cleaned dataset
+    output_filepath = "data/processed/cleaned_skills.csv"
+    df_cleaned.to_csv(output_filepath, index=False)
+    print(f"Cleaned dataset saved to {output_filepath}")
+
 # Run cleaning script
 if __name__ == "__main__":
     clean_job_postings_dataset()
     clean_resume_dataset()
+    clean_skills_dataset()
     
 

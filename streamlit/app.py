@@ -6,13 +6,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.services.file_reader import parse_with_llama
+from backend.app.services.file_reader import parse_with_llama
 from ui.styles import load_styles
 from ui.components import (
     render_page_header,
     render_insight_sidebar,
     render_match_section,
     render_test_section,
+    render_parsed_resume
 )
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -53,6 +54,9 @@ if "downstream_done" not in st.session_state:
 if "posting_data" not in st.session_state:
     st.session_state.posting_data = None
 
+if "show_resume" not in st.session_state:
+    st.session_state.show_resume = False
+
 # ── File upload ───────────────────────────────────────────────────────────────
 
 uploaded_file = st.file_uploader(
@@ -78,6 +82,16 @@ if uploaded_file:
         st.session_state.hybrid_data = None
         st.session_state.posting_data = None
 
+# ── View my parsed resume button ────────────────────────────────────────────────────────────
+
+if st.button("View my parsed resume"):
+    st.session_state.show_resume = not st.session_state.show_resume
+    if not uploaded_file:
+        st.error("Please upload your resume first.")
+
+if st.session_state.show_resume and st.session_state.resume_text:
+    render_parsed_resume(st.session_state.resume_text)
+
 # ── Analyze button ────────────────────────────────────────────────────────────
 
 if st.button("Analyze my resume"):
@@ -89,7 +103,7 @@ if st.button("Analyze my resume"):
                 response = requests.post(
                     "http://localhost:8000/api/hybrid-match-resume/",
                     json={"resume_text": st.session_state.resume_text},
-                    timeout=60
+                    timeout=120
                 )
                 response.raise_for_status()
                 st.session_state.hybrid_data = response.json()
@@ -135,7 +149,7 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
                             "resume_text": st.session_state.resume_text,
                             "hybrid_matches": hybrid_matches
                         },
-                        timeout=180
+                        timeout=480
                     )
                     response.raise_for_status()
                     st.session_state.posting_data = response.json()
@@ -193,7 +207,7 @@ if st.button("Test this job description"):
                         "resume_text": st.session_state.resume_text,
                         "job_desc": custom_jd
                     },
-                    timeout=30
+                    timeout=120
                 )
                 response.raise_for_status()
                 data = response.json()

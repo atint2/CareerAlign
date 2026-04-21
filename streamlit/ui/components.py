@@ -61,6 +61,35 @@ def _confidence_arc(pct: int) -> str:
     </div>
     """
 
+def _missing_skills_html(skills: list[dict]) -> str:
+    if not skills:
+        return '<span style="font-size:0.75rem;color:#9b9b96;">—</span>'
+
+    html_parts = []
+
+    for s in skills:
+        skill = s.get("skill", "")
+        priority = s.get("priority", "low")
+
+        chip_class = {
+            "high": "chip-high",
+            "medium": "chip-mod",
+            "low": "chip-low"
+        }.get(priority, "chip-low")
+
+        html_parts.append(
+            f"""
+            <span class="chip {chip_class}">
+                {skill}
+                <span style="opacity:0.6;font-size:0.65rem;margin-left:6px;">
+                    {priority}
+                </span>
+            </span>
+            """
+        )
+
+    return "".join(html_parts)
+
 # ── Main render functions ─────────────────────────────────────────────────────
 
 def render_job_card(job: dict, thresholds: tuple[int, int] = (70, 40)) -> None:
@@ -70,8 +99,11 @@ def render_job_card(job: dict, thresholds: tuple[int, int] = (70, 40)) -> None:
     strong_t, mod_t = thresholds
     label, badge_cls, fill_cls = _badge_props(pct, strong_t, mod_t)
 
-    have_chips = _chips_html(job.get("top_keywords", []), "chip-have")
-    miss_chips = _chips_html(job.get("missing_keywords", []), "chip-miss")
+    top = job.get("top_skills") or job.get("top_keywords") or []
+    missing = job.get("missing_skills") or job.get("missing_keywords") or []
+
+    have_chips = _chips_html(top, "chip-have")
+    miss_chips = _missing_skills_html(missing)
 
     # Card open + header
     with st.expander(f"{job['title']} — {pct}%"):
@@ -135,3 +167,12 @@ def render_match_section(
 
     for job in matches:
         render_job_card(job, thresholds)
+
+def render_parsed_resume(resume: str) -> None:
+    st.markdown("### Parsed Resume")
+    st.text_area(
+        label="Parsed Resume Text",
+        value=resume,
+        height=400,
+        disabled=True
+    )

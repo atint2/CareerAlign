@@ -2,7 +2,8 @@ import numpy as np
 from collections import Counter
 from sklearn.metrics import davies_bouldin_score, silhouette_score, calinski_harabasz_score
 from sklearn.metrics.pairwise import cosine_similarity
-from backend import database, models
+from backend.app import models
+from backend.app import database
 
 def mean_intra_cluster_similarity(embeddings, labels):
     """
