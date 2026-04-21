@@ -40,57 +40,6 @@ class TFIDFEmbeddingService:
         """
         return self.vectorizer.fit_transform(texts)
 
-# Keyword utility functions for resume optimization
-def find_top_keywords(job_desc, resume_text):
-    """Find top keywords in job description that are most relevant to the resume."""
-    
-    embedding_service = load_vectorizer()
-    vectorizer = embedding_service.vectorizer
-
-    job_desc_vec = vectorizer.transform([job_desc])
-    resume_vec = vectorizer.transform([resume_text])
-
-    # Element-wise multiply to get shared importance
-    shared_scores = job_desc_vec.multiply(resume_vec)
-
-    # Convert to array
-    scores = shared_scores.toarray().flatten()
-
-    feature_names = vectorizer.get_feature_names_out()
-
-    # Get top scoring features
-    top_indices = scores.argsort()[::-1]
-
-    top_keywords = [
-        feature_names[idx] for idx in top_indices
-        if scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
-    ]
-
-    return top_keywords[:10]
-
-def find_missing_keywords(job_desc, resume_text):
-    """Find top keywords in job description that are absent from the resume."""
-    
-    embedding_service = load_vectorizer()
-    vectorizer = embedding_service.vectorizer
-
-    job_desc_vec = vectorizer.transform([job_desc]).toarray().flatten()
-    resume_vec = vectorizer.transform([resume_text]).toarray().flatten()
-
-    feature_names = vectorizer.get_feature_names_out()
-
-    # Keep only terms that appear in the job desc but not in the resume
-    missing_scores = np.where(resume_vec == 0, job_desc_vec, 0)
-
-    top_indices = missing_scores.argsort()[::-1]
-
-    missing_keywords = [
-        feature_names[idx] for idx in top_indices
-        if missing_scores[idx] > 0 and feature_names[idx] not in CUSTOM_STOPWORDS
-    ]
-
-    return missing_keywords[:10]
-
 # Singleton pattern to ensure only one instance of the embedding service is created
 _instance: TFIDFEmbeddingService | None = None
 

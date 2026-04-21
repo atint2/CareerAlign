@@ -76,3 +76,11 @@ class Resume(Base):
     content_raw = Column(String, nullable=False)
     content_sbert = Column(String, nullable=True)
     content_tfidf = Column(String, nullable=True)
+
+class Skill(Base):
+    __tablename__ = "skills"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    skill = Column(String, unique=True, nullable=False)
+    hot_technology = Column(String, nullable=True)
+    in_demand = Column(String, nullable=True)

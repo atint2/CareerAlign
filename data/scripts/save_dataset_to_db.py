@@ -181,14 +181,77 @@ def save_resumes_to_db(dataset_filepath):
 
 	finally:
 		session.close()
+
+def save_skills_to_db(dataset_filepath):
+	# Read CSV
+	df = pd.read_csv(dataset_filepath)
+	if df.empty:
+		print("CSV is empty — nothing to do.")
+		return
+	
+	# Ensure at least required columns exist
+	required = ["Example"]
+	missing = [c for c in required if c not in df.columns]
+	if missing:
+		raise SystemExit(f"CSV is missing required columns: {missing}")
+	
+	# Normalize NaNs to None
+	df = df.where(pd.notnull(df), None)
+
+	# Initialize database session
+	SessionLocal = database.SessionLocal
+	session = SessionLocal()
+	try:
+		# Filter existing skills to avoid duplicates
+		existing = set(
+			r[0] for r in session.query(models.Skill.skill).all()
+		)
+
+		df_new = df[~df["Example"].isin(existing)].copy()
+
+		print(f"Found {len(df)} total rows.")
+		print(f"{len(df_new)} new rows to process.")
+
+		if df_new.empty:
+			print("No new skills to insert.")
+			return
+
+		# Insert into database
+		to_insert = []
+
+		for _, row in df_new.iterrows():
+			skill = str(row["Example"]).strip()
+			if skill in existing:
+				continue
+			r = models.Skill(
+				skill=skill,
+				hot_technology=row.get("Hot Technology"),
+				in_demand=row.get("In Demand")
+			)
+			to_insert.append(r)
+
+		print(f"Found {len(df)} rows in CSV; {len(to_insert)} new skills to insert.")
+
+        # Bulk insert new skills
+		if to_insert:
+			session.add_all(to_insert)
+			session.commit()
+			print(f"Inserted {len(to_insert)} new skills.")
+		else:
+			print("No new skills to insert.")
+
+	finally:
+		session.close()
 	
 def main():
 	resume_dataset = Path(__file__).resolve().parents[1] / "processed" / "cleaned_resumes.csv"
 	job_posting_dataset = Path(__file__).resolve().parents[1] / "processed" / "cleaned_job_postings.csv"
+	skills_dataset = Path(__file__).resolve().parents[1] / "processed" / "cleaned_skills.csv"
 
 	# Save datasets to DB
 	save_job_postings_to_db(job_posting_dataset)
 	save_resumes_to_db(resume_dataset)
+	save_skills_to_db(skills_dataset)
 
 if __name__ == "__main__":
 	main()

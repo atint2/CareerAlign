@@ -89,6 +89,11 @@ class ResumeBase(BaseModel):
     content_sbert: Optional[str] = None
     content_tfidf: Optional[str] = None
 
+class SkillBase(BaseModel):
+    skill: str
+    hot_technology: Optional[str] = None
+    in_demand: Optional[str] = None
+
 # Dependency to get DB session
 def get_db():
     db = SessionLocal()

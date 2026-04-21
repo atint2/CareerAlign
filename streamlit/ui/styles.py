@@ -206,6 +206,21 @@ def load_styles() -> str:
     }
     .chip-have { background: #E1F5EE; color: #085041; }
     .chip-miss { background: #FAECE7; color: #712B13; }
+    .chip-high {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    }
+    .chip-mod {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .chip-low {
+        background: #e0f2fe;
+        color: #075985;
+        border: 1px solid #bae6fd;
+    }
 
     /* ── Card divider & description ── */
     .card-divider {

@@ -103,7 +103,7 @@ if st.button("Analyze my resume"):
                 response = requests.post(
                     "http://localhost:8000/api/hybrid-match-resume/",
                     json={"resume_text": st.session_state.resume_text},
-                    timeout=60
+                    timeout=120
                 )
                 response.raise_for_status()
                 st.session_state.hybrid_data = response.json()
@@ -149,7 +149,7 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
                             "resume_text": st.session_state.resume_text,
                             "hybrid_matches": hybrid_matches
                         },
-                        timeout=180
+                        timeout=480
                     )
                     response.raise_for_status()
                     st.session_state.posting_data = response.json()
@@ -207,7 +207,7 @@ if st.button("Test this job description"):
                         "resume_text": st.session_state.resume_text,
                         "job_desc": custom_jd
                     },
-                    timeout=30
+                    timeout=120
                 )
                 response.raise_for_status()
                 data = response.json()
