@@ -1,0 +1,9 @@
+.venv/
+data/raw/
+data/processed/
+__pycache__/
+*.pyc
+.env
+*.pkl
+unprocessed_resumes/
+processed_resumes/

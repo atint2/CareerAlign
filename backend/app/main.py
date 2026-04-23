@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Annotated, Optional, Dict, Any
 from backend.app import models
-from backend.app.database import engine, SessionLocal
+from backend.app.database import init_db, SessionLocal, engine
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from backend.app.matcher.hybrid_matcher import hybrid_match, downstream_match
@@ -13,6 +13,11 @@ from backend.app.services.tf_idf_embedder import load_vectorizer
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup Logic ---
+
+    init_db()
+
+    from backend.app.database import engine
+
     # Create vector extension
     with engine.connect() as connection:
         connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
