@@ -61,7 +61,7 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
 
     # Load embedding services
     try:
-        tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
+        tfidf_service = load_vectorizer()
         sbert_service = get_sbert_service()
     except Exception as e:
         raise RuntimeError(f"Failed to load embedding services: {e}") from e
@@ -156,7 +156,7 @@ def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], db_
 
     # Load embedding services
     try:
-        tfidf_service = load_vectorizer("tfidf_vectorizer.pkl")
+        tfidf_service = load_vectorizer()
         sbert_service = get_sbert_service()
     except Exception as e:
         raise RuntimeError(f"Failed to load embedding services: {e}") from e
