@@ -1,7 +1,11 @@
+import os
 import streamlit as st
 import requests
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -57,6 +61,9 @@ if "posting_data" not in st.session_state:
 if "show_resume" not in st.session_state:
     st.session_state.show_resume = False
 
+if "BACKEND_URL" not in st.session_state:
+    st.session_state.BACKEND_URL = os.getenv("BACKEND_URL") or "http://localhost:8080"
+
 # ── File upload ───────────────────────────────────────────────────────────────
 
 uploaded_file = st.file_uploader(
@@ -101,7 +108,7 @@ if st.button("Analyze my resume"):
         with st.spinner("Analyzing your resume…"):
             try:
                 response = requests.post(
-                    "http://localhost:8080/api/hybrid-match-resume/",
+                    f"{st.session_state.BACKEND_URL}/api/hybrid-match-resume/",
                     json={"resume_text": st.session_state.resume_text},
                     timeout=120
                 )
@@ -148,7 +155,7 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
             with st.spinner("Analyzing job postings…"):
                 try:
                     response = requests.post(
-                        "http://localhost:8080/api/downstream-match-resume/",
+                        f"{st.session_state.BACKEND_URL}/api/downstream-match-resume/",
                         json={
                             "resume_text": st.session_state.resume_text,
                             "hybrid_matches": hybrid_matches
