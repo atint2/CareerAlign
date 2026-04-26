@@ -16,24 +16,24 @@ async def lifespan(app: FastAPI):
 
     init_db()
 
-    from backend.app.database import engine
+    # from backend.app.database import engine
 
     # Create vector extension
-    with engine.connect() as connection:
-        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-        connection.commit()
+    # with engine.connect() as connection:
+    #     connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+    #     connection.commit()
 
-    # Create tables
-    models.Base.metadata.create_all(bind=engine)
+    # # Create tables
+    # models.Base.metadata.create_all(bind=engine)
 
     # Enable RLS
-    tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", 
-              "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", 
-              "cluster_embeddings_sbert", "resumes"]
-    with engine.connect() as connection:
-        for table in tables:
-            connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
-        connection.commit()
+    # tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", 
+    #           "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", 
+    #           "cluster_embeddings_sbert", "resumes"]
+    # with engine.connect() as connection:
+    #     for table in tables:
+    #         connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
+    #     connection.commit()
 
     # Load heavy objects once at startup
     get_sbert_service()    # loads SBERT model into memory once
@@ -157,6 +157,8 @@ async def hybrid_match_resume_endpoint(
         results = hybrid_match(request.resume_text, request.job_desc, db)
         return results
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 class DownstreamMatchRequest(BaseModel):
