@@ -101,7 +101,7 @@ if st.button("Analyze my resume"):
         with st.spinner("Analyzing your resume…"):
             try:
                 response = requests.post(
-                    "http://localhost:8000/api/hybrid-match-resume/",
+                    "http://localhost:8080/api/hybrid-match-resume/",
                     json={"resume_text": st.session_state.resume_text},
                     timeout=120
                 )
@@ -109,8 +109,12 @@ if st.button("Analyze my resume"):
                 st.session_state.hybrid_data = response.json()
                 st.session_state.analysis_done = True
 
-            except requests.exceptions.RequestException as e:
-                st.error(f"Connection error: {e}")
+            except requests.exceptions.HTTPError:
+                st.error("Something went wrong while analyzing your resume. Please try again.")
+                print(f"Error details: {response.text}")
+            except requests.exceptions.RequestException:
+                st.error("Could not connect to the server. Please try again later.")
+                print("Connection error:", sys.exc_info())
 
 # ── Render main results ───────────────────────────────────────────────────────
 
@@ -144,7 +148,7 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
             with st.spinner("Analyzing job postings…"):
                 try:
                     response = requests.post(
-                        "http://localhost:8000/api/downstream-match-resume/",
+                        "http://localhost:8080/api/downstream-match-resume/",
                         json={
                             "resume_text": st.session_state.resume_text,
                             "hybrid_matches": hybrid_matches
@@ -155,8 +159,12 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
                     st.session_state.posting_data = response.json()
                     st.session_state.downstream_done = True
 
-                except requests.exceptions.RequestException as e:
-                    st.error(f"Connection error: {e}")
+                except requests.exceptions.HTTPError:
+                    st.error("Something went wrong while analyzing your resume. Please try again.")
+                    print(f"Error details: {response.text}")
+                except requests.exceptions.RequestException:
+                    st.error("Could not connect to the server. Please try again later.")
+                    print("Connection error:", sys.exc_info())
 
         # ── Show downstream results if available ────────────────────────────
 

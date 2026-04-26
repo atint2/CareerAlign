@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Annotated, Optional, Dict, Any
 from backend.app import models
-from backend.app.database import engine, SessionLocal
+from backend.app.database import init_db, SessionLocal, engine
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from backend.app.matcher.hybrid_matcher import hybrid_match, downstream_match
@@ -13,22 +13,27 @@ from backend.app.services.tf_idf_embedder import load_vectorizer
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup Logic ---
-    # Create vector extension
-    with engine.connect() as connection:
-        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-        connection.commit()
 
-    # Create tables
-    models.Base.metadata.create_all(bind=engine)
+    init_db()
+
+    # from backend.app.database import engine
+
+    # Create vector extension
+    # with engine.connect() as connection:
+    #     connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+    #     connection.commit()
+
+    # # Create tables
+    # models.Base.metadata.create_all(bind=engine)
 
     # Enable RLS
-    tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", 
-              "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", 
-              "cluster_embeddings_sbert", "resumes"]
-    with engine.connect() as connection:
-        for table in tables:
-            connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
-        connection.commit()
+    # tables = ["job_postings", "job_embeddings_sbert", "job_embeddings_tfidf", 
+    #           "reduced_job_embeddings", "clusters", "cluster_embeddings_tfidf", 
+    #           "cluster_embeddings_sbert", "resumes"]
+    # with engine.connect() as connection:
+    #     for table in tables:
+    #         connection.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
+    #     connection.commit()
 
     # Load heavy objects once at startup
     get_sbert_service()    # loads SBERT model into memory once
@@ -152,6 +157,8 @@ async def hybrid_match_resume_endpoint(
         results = hybrid_match(request.resume_text, request.job_desc, db)
         return results
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 class DownstreamMatchRequest(BaseModel):

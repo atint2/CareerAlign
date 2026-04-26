@@ -12,6 +12,13 @@ from backend.app.services.tf_idf_embedder import TFIDFEmbeddingService
 from backend.app import models
 
 def fit_and_save_vectorizer():
+    # Load env
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    # Initialize database
+    database.init_db()
+
     # Initialize database session
     SessionLocal = database.SessionLocal
     db_session = SessionLocal()
