@@ -7,6 +7,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from backend.app.config import CUSTOM_STOPWORDS
 import pickle
 import numpy as np
+from pathlib import Path
+_PKL_PATH = Path(__file__).resolve().parent.parent.parent.parent / "tfidf_vectorizer.pkl"
+
 
 class TFIDFEmbeddingService:
     """
@@ -15,7 +18,7 @@ class TFIDFEmbeddingService:
 
     def __init__(self):
         self.vectorizer = TfidfVectorizer(
-            stop_words=CUSTOM_STOPWORDS,
+            stop_words=list(CUSTOM_STOPWORDS),
             max_df=0.8,
             min_df=5,
             ngram_range=(1, 2),
@@ -43,11 +46,11 @@ class TFIDFEmbeddingService:
 # Singleton pattern to ensure only one instance of the embedding service is created
 _instance: TFIDFEmbeddingService | None = None
 
-def load_vectorizer(path="tfidf_vectorizer.pkl") -> TFIDFEmbeddingService:
+def load_vectorizer() -> TFIDFEmbeddingService:
     """Load the fitted vectorizer from disk, caching it for the app lifetime."""
     global _instance
     if _instance is None:
-        with open(path, "rb") as f:
+        with open(_PKL_PATH, "rb") as f:
             vectorizer = pickle.load(f)
         service = TFIDFEmbeddingService()
         service.vectorizer = vectorizer
