@@ -22,3 +22,4 @@ tqdm==4.67.1
 umap_learn==0.5.11
 uvicorn==0.40.0
 psycopg2-binary==2.9.11
+skillner==1.0.3
