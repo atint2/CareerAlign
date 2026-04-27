@@ -192,48 +192,48 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
 
 # ── Custom job description tester ────────────────────────────────────────────
 
-render_test_section()
+# render_test_section()
 
-custom_jd = st.text_area(
-    "Job description",
-    height=220,
-    placeholder="Paste the job description here…",
-    label_visibility="collapsed"
-)
+# custom_jd = st.text_area(
+#     "Job description",
+#     height=220,
+#     placeholder="Paste the job description here…",
+#     label_visibility="collapsed"
+# )
 
-if st.button("Test this job description"):
-    if not uploaded_file:
-        st.error("Please upload your resume before testing.")
-    elif not custom_jd.strip():
-        st.error("Please enter a job description.")
-    else:
-        with st.spinner("Running matcher…"):
-            try:
-                response = requests.post(
-                    "http://localhost:8000/api/hybrid-match-resume/",
-                    json={
-                        "resume_text": st.session_state.resume_text,
-                        "job_desc": custom_jd
-                    },
-                    timeout=120
-                )
-                response.raise_for_status()
-                data = response.json()
+# if st.button("Test this job description"):
+#     if not uploaded_file:
+#         st.error("Please upload your resume before testing.")
+#     elif not custom_jd.strip():
+#         st.error("Please enter a job description.")
+#     else:
+#         with st.spinner("Running matcher…"):
+#             try:
+#                 response = requests.post(
+#                     "http://localhost:8000/api/hybrid-match-resume/",
+#                     json={
+#                         "resume_text": st.session_state.resume_text,
+#                         "job_desc": custom_jd
+#                     },
+#                     timeout=120
+#                 )
+#                 response.raise_for_status()
+#                 data = response.json()
 
-                col1, col2 = st.columns(2, gap="medium")
+#                 col1, col2 = st.columns(2, gap="medium")
 
-                with col1:
-                    render_match_section(
-                        "Semantic match (SBERT)",
-                        data.get("sbert_matches", []),
-                        thresholds=(70, 40),
-                    )
-                with col2:
-                    render_match_section(
-                        "Keyword match (TF-IDF)",
-                        data.get("tfidf_matches", []),
-                        thresholds=(30, 10),
-                    )
+#                 with col1:
+#                     render_match_section(
+#                         "Semantic match (SBERT)",
+#                         data.get("sbert_matches", []),
+#                         thresholds=(70, 40),
+#                     )
+#                 with col2:
+#                     render_match_section(
+#                         "Keyword match (TF-IDF)",
+#                         data.get("tfidf_matches", []),
+#                         thresholds=(30, 10),
+#                     )
 
-            except requests.exceptions.RequestException as e:
-                st.error(f"Connection error: {e}")
+#             except requests.exceptions.RequestException as e:
+#                 st.error(f"Connection error: {e}")
