@@ -1,13 +1,14 @@
-import re
+from spacy.lang.en import English
+from spacy.matcher import PhraseMatcher
 
 SKILLS_CACHE = None
+_nlp = None
+_matcher = None
 
 def get_skills_map(db_session, models):
     global SKILLS_CACHE
-
     if SKILLS_CACHE is None:
         skills = db_session.query(models.Skill).all()
-
         SKILLS_CACHE = {
             s.skill.lower(): {
                 "hot": (s.hot_technology or "").lower() == "yes",
@@ -15,50 +16,39 @@ def get_skills_map(db_session, models):
             }
             for s in skills
         }
-
     return SKILLS_CACHE
 
-def extract_skills(text: str, skills_map: dict) -> set[str]:
-    text = text.lower()
+def get_phrase_matcher(skills_map: dict) -> tuple:
+    """Build a spaCy PhraseMatcher from your DB skills. Cached after first build."""
+    global _nlp, _matcher
+    if _matcher is None:
+        _nlp = English()
+        _matcher = PhraseMatcher(_nlp.vocab, attr="LOWER")
+        patterns = [_nlp.make_doc(skill) for skill in skills_map.keys()]
+        _matcher.add("SKILLS", patterns)
+    return _nlp, _matcher
+
+def _extract_phrase_matcher(text: str, skills_map: dict) -> set[str]:
+    """Use spaCy PhraseMatcher for efficient, token-aware skill extraction."""
+    nlp, matcher = get_phrase_matcher(skills_map)
+    doc = nlp(text.lower())
     found = set()
-
-    for skill in skills_map.keys():
-        pattern = rf"\b{re.escape(skill)}\b"
-        if re.search(pattern, text):
-            found.add(skill)
-
+    for _, start, end in matcher(doc):
+        span = doc[start:end].text.lower()
+        if span in skills_map:
+            found.add(span)
     return found
 
-def score_skill(skill: str, meta: dict) -> int:
-    score = 0
-
-    if meta.get("hot"):
-        score += 2
-    if meta.get("in_demand"):
-        score += 3
-
-    return score
+def extract_skills(text: str, skills_map: dict) -> set[str]:
+    return _extract_phrase_matcher(text, skills_map)
 
 def build_missing_skills(missing: set[str], skills_map: dict):
     enriched = []
-
     for skill in missing:
         meta = skills_map.get(skill, {})
-
-        score = score_skill(skill, meta)
-
-        if score >= 4:
-            priority = "high"
-        elif score >= 2:
-            priority = "medium"
-        else:
-            priority = "low"
-
         enriched.append({
             "skill": skill,
-            "priority": priority,
             "hot": meta.get("hot", False),
             "in_demand": meta.get("in_demand", False)
         })
-
-    return sorted(enriched, key=lambda x: x["priority"] != "high")
+    return enriched

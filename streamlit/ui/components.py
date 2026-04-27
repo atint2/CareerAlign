@@ -65,30 +65,10 @@ def _missing_skills_html(skills: list[dict]) -> str:
     if not skills:
         return '<span style="font-size:0.75rem;color:#9b9b96;">—</span>'
 
-    html_parts = []
-
-    for s in skills:
-        skill = s.get("skill", "")
-        priority = s.get("priority", "low")
-
-        chip_class = {
-            "high": "chip-high",
-            "medium": "chip-mod",
-            "low": "chip-low"
-        }.get(priority, "chip-low")
-
-        html_parts.append(
-            f"""
-            <span class="chip {chip_class}">
-                {skill}
-                <span style="opacity:0.6;font-size:0.65rem;margin-left:6px;">
-                    {priority}
-                </span>
-            </span>
-            """
-        )
-
-    return "".join(html_parts)
+    return "".join(
+        f'<span class="chip chip-miss">{s.get("skill", "")}</span>'
+        for s in skills
+    )
 
 # ── Main render functions ─────────────────────────────────────────────────────
 
@@ -129,28 +109,33 @@ def render_job_card(job: dict, thresholds: tuple[int, int] = (70, 40)) -> None:
         """, unsafe_allow_html=True)
 
 def render_insight_sidebar(insights: dict) -> None:
+    import html as html_lib
+
     pct     = insights.get("confidence_score", 0)
     arc     = _confidence_arc(pct)
-    alt_role = insights.get("alternative_role", "")
-    alt_why  = insights.get("alternative_role_suggestions", "")
-
-    alt_html = ""
-    if alt_role:
-        alt_html = f"""
-        <div class="alt-label">Consider also</div>
-        <div class="alt-role">{alt_role}</div>
-        <div class="alt-why">{alt_why}</div>
-        """
+    alt_role = html_lib.escape(insights.get("alternative_role") or "")
+    alt_why  = html_lib.escape(insights.get("alternative_role_suggestions") or "")
+    title    = html_lib.escape(insights.get("recommended_job_title") or "—")
+    summary  = html_lib.escape(insights.get("match_summary") or "")
 
     st.markdown(f"""
     <div class="insight-card">
       <div class="insight-eyebrow">AI insight</div>
       {arc}
-      <div class="role-name">{insights.get('recommended_job_title', '—')}</div>
-      <p class="match-summary">{insights.get('match_summary', '')}</p>
-      {alt_html}
+      <div class="role-name">{title}</div>
+      <p class="match-summary">{summary}</p>
     </div>
     """, unsafe_allow_html=True)
+
+    if alt_role:
+        st.markdown(f"""
+        <div class="insight-card">
+        <div class="insight-eyebrow">Consider also</div>
+        <div class="role-name">{alt_role}</div>
+        <div class="match-summary">{alt_why}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
 
 def render_match_section(
     title: str,
