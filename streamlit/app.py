@@ -155,7 +155,7 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
             with st.spinner("Analyzing job postings…"):
                 try:
                     response = requests.post(
-                        "http://localhost:8080/api/downstream-match-resume/",
+                        "{st.session_state.BACKEND_URL}/api/downstream-match-resume/",
                         json={
                             "resume_text": st.session_state.resume_text,
                             "hybrid_matches": hybrid_matches
@@ -217,7 +217,7 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
 #         with st.spinner("Running matcher…"):
 #             try:
 #                 response = requests.post(
-#                     "http://localhost:8000/api/hybrid-match-resume/",
+#                     "{st.session_state.BACKEND_URL}/api/hybrid-match-resume/",
 #                     json={
 #                         "resume_text": st.session_state.resume_text,
 #                         "job_desc": custom_jd
