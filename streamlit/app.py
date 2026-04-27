@@ -141,54 +141,54 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
 
         # ── Downstream button ───────────────────────────────────────────────
 
-        if st.button(
-            "Continue analysis with job postings",
-            disabled=st.session_state.downstream_done
-        ):
-            with st.spinner("Analyzing job postings…"):
-                try:
-                    response = requests.post(
-                        "http://localhost:8080/api/downstream-match-resume/",
-                        json={
-                            "resume_text": st.session_state.resume_text,
-                            "hybrid_matches": hybrid_matches
-                        },
-                        timeout=480
-                    )
-                    response.raise_for_status()
-                    st.session_state.posting_data = response.json()
-                    st.session_state.downstream_done = True
+    #     if st.button(
+    #         "Continue analysis with job postings",
+    #         disabled=st.session_state.downstream_done
+    #     ):
+    #         with st.spinner("Analyzing job postings…"):
+    #             try:
+    #                 response = requests.post(
+    #                     "http://localhost:8080/api/downstream-match-resume/",
+    #                     json={
+    #                         "resume_text": st.session_state.resume_text,
+    #                         "hybrid_matches": hybrid_matches
+    #                     },
+    #                     timeout=480
+    #                 )
+    #                 response.raise_for_status()
+    #                 st.session_state.posting_data = response.json()
+    #                 st.session_state.downstream_done = True
 
-                except requests.exceptions.HTTPError:
-                    st.error("Something went wrong while analyzing your resume. Please try again.")
-                    print(f"Error details: {response.text}")
-                except requests.exceptions.RequestException:
-                    st.error("Could not connect to the server. Please try again later.")
-                    print("Connection error:", sys.exc_info())
+    #             except requests.exceptions.HTTPError:
+    #                 st.error("Something went wrong while analyzing your resume. Please try again.")
+    #                 print(f"Error details: {response.text}")
+    #             except requests.exceptions.RequestException:
+    #                 st.error("Could not connect to the server. Please try again later.")
+    #                 print("Connection error:", sys.exc_info())
 
-        # ── Show downstream results if available ────────────────────────────
+    #     # ── Show downstream results if available ────────────────────────────
 
-    if st.session_state.downstream_done and st.session_state.posting_data:
-        data = st.session_state.posting_data
-        insights = data.get("insights")
-        posting_matches = data.get("posting_matches", [])
+    # if st.session_state.downstream_done and st.session_state.posting_data:
+    #     data = st.session_state.posting_data
+    #     insights = data.get("insights")
+    #     posting_matches = data.get("posting_matches", [])
 
-        sidebar_col, main_col = st.columns([1, 2.8], gap="large")
+    #     sidebar_col, main_col = st.columns([1, 2.8], gap="large")
 
-        with sidebar_col:
-            if insights:
-                render_insight_sidebar(insights)
-            else:
-                st.warning("AI insights unavailable.")
+    #     with sidebar_col:
+    #         if insights:
+    #             render_insight_sidebar(insights)
+    #         else:
+    #             st.warning("AI insights unavailable.")
 
-        with main_col:
-            if posting_matches:
-                st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
-                render_match_section(
-                    "Job postings",
-                    posting_matches,
-                    thresholds=(70, 40),
-                )
+    #     with main_col:
+    #         if posting_matches:
+    #             st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
+    #             render_match_section(
+    #                 "Job postings",
+    #                 posting_matches,
+    #                 thresholds=(70, 40),
+    #             )
 
 # ── Custom job description tester ────────────────────────────────────────────
 
