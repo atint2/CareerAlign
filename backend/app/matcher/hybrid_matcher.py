@@ -56,7 +56,7 @@ def hybrid_rank_jobs(tfidf_matches, sbert_matches, alpha=0.75):
 
     return hybrid_results
 
-def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
+def hybrid_match(resume_text: str, job_desc: Optional[str], llm_model: str, db_session):
     """Match resumes to LLM-generated job descriptions using hybrid approach -- combining pre-trained SBERT model and trained TF-IDF model."""
 
     # Load embedding services
@@ -108,12 +108,12 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         top_jobs_tfidf,
         top_jobs_sbert
     )
+
     # Create LLM prompt
-    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=hybrid_matches[:10]
-)
+    prompt = create_llm_prompt(resume_text, top_jobs_hybrid=hybrid_matches[:10])
     # Generate insights using LLM
     try:
-        insights_text = generate_resume_insights(prompt)
+        insights_text = generate_resume_insights(prompt, llm_model=llm_model)
         insights = json.loads(insights_text)
     except RuntimeError as e:
         print(f"Insights unavailable: {e}")
@@ -151,7 +151,7 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
         "insights": insights
     }
 
-def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], db_session):
+def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], llm_model: str, db_session):
     """Optional matching of resumes to job postings in database given matched cluster ids."""
 
     # Load embedding services
@@ -182,12 +182,13 @@ def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], db_
             sbert_service=sbert_service,
             db_session=db_session,
             models=models
-        )
+    )
+    
      # Create LLM prompt
     prompt = create_llm_prompt(resume_text, top_jobs_hybrid=posting_matches)
     # Generate insights using LLM
     try:
-        insights_text = generate_resume_insights(prompt)
+        insights_text = generate_resume_insights(prompt, llm_model=llm_model)
         insights = json.loads(insights_text)
     except RuntimeError as e:
         print(f"Insights unavailable: {e}")

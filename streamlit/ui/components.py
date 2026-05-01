@@ -117,6 +117,7 @@ def render_insight_sidebar(insights: dict) -> None:
     alt_why  = html_lib.escape(insights.get("alternative_role_suggestions") or "")
     title    = html_lib.escape(insights.get("recommended_job_title") or "—")
     summary  = html_lib.escape(insights.get("match_summary") or "")
+    improvement_suggestions = html_lib.escape(insights.get("improvement_suggestions") or "")
 
     st.markdown(f"""
     <div class="insight-card">
@@ -124,6 +125,7 @@ def render_insight_sidebar(insights: dict) -> None:
       {arc}
       <div class="role-name">{title}</div>
       <p class="match-summary">{summary}</p>
+      <p class="match-summary">{improvement_suggestions}</p>
     </div>
     """, unsafe_allow_html=True)
 
