@@ -12,7 +12,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download required NLTK data
-RUN python -m nltk.downloader stopwords punkt_tab
+# RUN python -m nltk.downloader stopwords punkt_tab
+
+# Download the large English model for spaCy 
+RUN python -m spacy download en_core_web_lg
 
 COPY . .
 
