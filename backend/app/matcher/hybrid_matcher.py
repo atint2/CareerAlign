@@ -4,6 +4,7 @@ from backend.app.matcher.match_resume import find_top_job_matches_tfidf, find_to
 from backend.app.services.tf_idf_embedder import load_vectorizer
 from backend.app.services.sbert_embedder import get_sbert_service
 from backend.app import models
+from backend.app.services.file_reader import extract_skills
 from data.scripts.preprocessor_tfidf import TFIDFPreprocessor
 from data.scripts.preprocessor_sbert import SBERTPreprocessor
 # import matplotlib.pyplot as plt
@@ -73,15 +74,17 @@ def hybrid_match(resume_text: str, job_desc: Optional[str], db_session):
     except Exception as e:
         raise RuntimeError(f"Failed to load preprocessors: {e}") from e
 
-    # Preprocess resume text
-    resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_text)
+    # Preprocess resume text - use skills for TF-IDF and full text for SBERT to leverage strengths of each method
+    resume_skills = extract_skills(resume_text)
+    resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_skills)
     resume_text_sbert = sbert_prep.clean_text_sbert(resume_text)
 
     job_desc_tfidf = None
     job_desc_sbert = None
     # Preprocess custom job description (if provided)
     if job_desc:
-        job_desc_tfidf = tfidf_prep.clean_text_tfidf(job_desc)
+        job_desc_skills = extract_skills(job_desc)
+        job_desc_tfidf = tfidf_prep.clean_text_tfidf(job_desc_skills)
         job_desc_sbert = sbert_prep.clean_text_sbert(job_desc)
 
     # Find matches using TF-IDF
@@ -168,8 +171,9 @@ def downstream_match(resume_text: str, hybrid_matches: List[Dict[str, Any]], db_
     except Exception as e:
         raise RuntimeError(f"Failed to load preprocessors: {e}") from e
 
-    # Preprocess resume text
-    resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_text)
+    # Preprocess resume text - use skills for TF-IDF and full text for SBERT to leverage strengths of each method
+    resume_skills = extract_skills(resume_text)
+    resume_text_tfidf = tfidf_prep.clean_text_tfidf(resume_skills)
     resume_text_sbert = sbert_prep.clean_text_sbert(resume_text)
 
     # Rank individual postings within matched clusters
