@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download required NLTK data
-RUN python -m nltk.downloader stopwords punkt_tab
+RUN python -m nltk.downloader stopwords punkt wordnet
 
 COPY . .
 
