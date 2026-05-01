@@ -4,7 +4,6 @@ It uses pdfplumber for PDFs and python-docx for DOCX files.
 The extracted text is returned as a single string, which can then be processed further by the application.
 """    
 
-from docx import Document
 import tempfile
 import os
 import nest_asyncio
@@ -41,3 +40,13 @@ def parse_with_llama(file):
         os.remove(tmp_file_path)
         
     return file_contents
+
+def extract_skills(text):
+    from backend.app.matcher.keyword_feedback import extract_skills, get_skills_map
+    from backend.app import database, models
+
+    db_session = database.SessionLocal()
+    skills_map = get_skills_map(db_session, models)
+    skills = extract_skills(text, skills_map)
+    resume_skills = ", ".join(skills)
+    return resume_skills
