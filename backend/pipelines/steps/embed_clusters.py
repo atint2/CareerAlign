@@ -1,4 +1,3 @@
-import pickle
 from backend.app.services.tf_idf_embedder import load_vectorizer
 from backend.app.services.sbert_embedder import get_sbert_service
 from backend.app import models
@@ -17,7 +16,7 @@ def run(db_session):
     # Load the fitted TF-IDF vectorizer and transform job descriptions, then save embeddings to DB
     try:
         # Load the fitted TF-IDF vectorizer
-        embedding_service = load_vectorizer("tfidf_vectorizer.pkl")
+        embedding_service = load_vectorizer()
         print("Loaded TF-IDF vectorizer from disk.")
 
         # Check for existing cluster embeddings to avoid duplicates
@@ -41,7 +40,7 @@ def run(db_session):
             db_session.add(embedding_obj)
 
         db_session.commit()
-        print(f"Inserted/updated {len(job_descs)} cluster embeddings.")
+        print(f"Inserted/updated {len(job_descs)} TF-IDF cluster embeddings.")
 
     except Exception as e:
         print("Exception during TF-IDF transformation or DB insertion:", e)
