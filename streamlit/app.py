@@ -46,6 +46,9 @@ if "resume_text" not in st.session_state:
 if "uploaded_file_id" not in st.session_state:       
     st.session_state.uploaded_file_id = None
 
+if "llm_model" not in st.session_state:
+    st.session_state.llm_model = "OpenAI" # default to OpenAI, but can switch to Gemini in dropdown
+
 if "analysis_done" not in st.session_state:
     st.session_state.analysis_done = False
 
@@ -89,39 +92,48 @@ if uploaded_file:
         st.session_state.hybrid_data = None
         st.session_state.posting_data = None
 
-# ── View my parsed resume button ────────────────────────────────────────────────────────────
+if st.session_state.resume_text:
+    # ── View my parsed resume button ────────────────────────────────────────────────────────────
+    if st.button("View my parsed resume"):
+        st.session_state.show_resume = not st.session_state.show_resume
+        if not uploaded_file:
+            st.error("Please upload your resume first.")
 
-if st.button("View my parsed resume"):
-    st.session_state.show_resume = not st.session_state.show_resume
-    if not uploaded_file:
-        st.error("Please upload your resume first.")
+    if st.session_state.show_resume and st.session_state.resume_text:
+        render_parsed_resume(st.session_state.resume_text)
 
-if st.session_state.show_resume and st.session_state.resume_text:
-    render_parsed_resume(st.session_state.resume_text)
+    # ── Select LLM model dropdown ────────────────────────────────────────────────────────────
+    st.session_state.llm_model = st.selectbox(
+        "Select LLM model for insights",
+        options=[
+            "OpenAI", "Gemini"
+        ]
+    )
 
-# ── Analyze button ────────────────────────────────────────────────────────────
+    if st.button("Analyze my resume"):
+        if not uploaded_file:
+            st.error("Please upload your resume first.")
+        else:
+            with st.spinner("Analyzing your resume…"):
+                try:
+                    response = requests.post(
+                        f"{st.session_state.BACKEND_URL}/api/hybrid-match-resume/",
+                        json={
+                            "resume_text": st.session_state.resume_text,
+                            "llm_model": st.session_state.llm_model
+                        },
+                        timeout=120
+                    )
+                    response.raise_for_status()
+                    st.session_state.hybrid_data = response.json()
+                    st.session_state.analysis_done = True
 
-if st.button("Analyze my resume"):
-    if not uploaded_file:
-        st.error("Please upload your resume first.")
-    else:
-        with st.spinner("Analyzing your resume…"):
-            try:
-                response = requests.post(
-                    f"{st.session_state.BACKEND_URL}/api/hybrid-match-resume/",
-                    json={"resume_text": st.session_state.resume_text},
-                    timeout=120
-                )
-                response.raise_for_status()
-                st.session_state.hybrid_data = response.json()
-                st.session_state.analysis_done = True
-
-            except requests.exceptions.HTTPError:
-                st.error("Something went wrong while analyzing your resume. Please try again.")
-                print(f"Error details: {response.text}")
-            except requests.exceptions.RequestException:
-                st.error("Could not connect to the server. Please try again later.")
-                print("Connection error:", sys.exc_info())
+                except requests.exceptions.HTTPError:
+                    st.error("Something went wrong while analyzing your resume. Please try again.")
+                    print(f"Error details: {response.text}")
+                except requests.exceptions.RequestException:
+                    st.error("Could not connect to the server. Please try again later.")
+                    print("Connection error:", sys.exc_info())
 
 # ── Render main results ───────────────────────────────────────────────────────
 
@@ -150,7 +162,6 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
 
         if st.button(
             "Continue analysis with job postings",
-            disabled=st.session_state.downstream_done
         ):
             with st.spinner("Analyzing job postings…"):
                 try:
@@ -158,7 +169,8 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
                         f"{st.session_state.BACKEND_URL}/api/downstream-match-resume/",
                         json={
                             "resume_text": st.session_state.resume_text,
-                            "hybrid_matches": hybrid_matches
+                            "hybrid_matches": hybrid_matches,
+                            "llm_model": st.session_state.llm_model
                         },
                         timeout=480
                     )

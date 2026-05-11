@@ -1,4 +1,5 @@
 from google import genai
+from openai import OpenAI
 from backend.app.services.tf_idf_embedder import load_vectorizer
 from backend.app.services.sbert_embedder import get_sbert_service
 from backend.app.matcher.keyword_feedback import get_skills_map, extract_skills, build_missing_skills
@@ -252,10 +253,6 @@ def create_llm_prompt(resume_text, top_jobs_tfidf = None, top_jobs_sbert = None,
         return
 
     prompt = f"""
-        You are an expert AI career advisor.
-
-        Your task is to analyze the resume and the retrieved job descriptions.
-
         Instructions:
         - Choose ONLY one job from the provided list.
         - Base your reasoning on skills, responsibilities, and experience alignment.
@@ -269,6 +266,7 @@ def create_llm_prompt(resume_text, top_jobs_tfidf = None, top_jobs_sbert = None,
         - Provide a 2-4 sentence explanation referencing specific skills or experiences that led to your recommendation.
         - If you assign an alternative role, you MUST give an additional 2-4 sentence explanation for the alternative match under "alternative_role_suggestions". If you do not provide an alternative role, set "alternative_role_suggestions" to null.
         
+        Feedback should talk directly to the candidate using "you" language
         Return ONLY valid JSON.
         No explanations outside JSON.
         No markdown formatting.
@@ -292,40 +290,68 @@ def create_llm_prompt(resume_text, top_jobs_tfidf = None, top_jobs_sbert = None,
     
     return prompt.strip()
     
-def generate_resume_insights(prompt):
+def generate_resume_insights(prompt, llm_model):
     """
     Call LLM to generate a generalized job description.
     """
     if not prompt:
         return "No prompt provided for LLM generation."
 
-    for i, key in enumerate(API_KEYS):
-        try:
-            current_client = genai.Client(api_key=key)
+    if llm_model == "Gemini":
+        for i, key in enumerate(API_KEYS):
+            try:
+                current_client = genai.Client(api_key=key)
 
-            response = current_client.models.generate_content(
-                model="gemini-2.5-flash-lite",
-                contents=prompt,
+                response = current_client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents="You are an expert AI career advisor. Your task is to analyze the resume and the retrieved job descriptions." +prompt,
+                )
+
+                text = response.text.strip()
+
+                if text.startswith("```"):
+                    text = text.split("```")[1] 
+                    text = text.replace("json", "", 1).strip()
+
+                return text
+            
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    print(f"API key {i+1}/{len(API_KEYS)} exhausted, trying next key...")
+                    if i == len(API_KEYS) - 1:
+                        return "All API keys exhausted."
+                elif "503" in error_str or "This model is currently experiencing high demand." in error_str:
+                    raise RuntimeError(f"This model is currently experiencing high demand: {e}")
+                else:
+                    raise RuntimeError(f"LLM generation failed: {e}")
+    elif llm_model == "OpenAI":
+        try:
+            client = OpenAI()
+            response = client.chat.completions.create(
+                model = "gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert AI career advisor. Your task is to analyze the resume and the retrieved job descriptions."},
+                    {"role": "user", "content": prompt}    
+                ]
             )
 
-            text = response.text.strip()
+            text = response.choices[0].message.content.strip()
 
             if text.startswith("```"):
                 text = text.split("```")[1] 
                 text = text.replace("json", "", 1).strip()
 
             return text
-        
         except Exception as e:
             error_str = str(e)
-            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                print(f"API key {i+1}/{len(API_KEYS)} exhausted, trying next key...")
-                if i == len(API_KEYS) - 1:
-                    return "All API keys exhausted."
-            elif "503" in error_str or "This model is currently experiencing high demand." in error_str:
-                raise RuntimeError(f"This model is currently experiencing high demand: {e}")
+            if "429" in error_str or "Rate limit exceeded" in error_str:
+                return "OpenAI API rate limit exceeded. Please try again later."
             else:
                 raise RuntimeError(f"LLM generation failed: {e}")
+    else:
+        raise ValueError(f"Unsupported LLM model: {llm_model}")
+
 
 def match_resume(resume_text: str, job_desc: str | None, db_session):
     from backend.app import models

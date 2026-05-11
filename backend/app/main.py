@@ -151,6 +151,7 @@ async def create_reduced_embedding(ReducedEmbedding: ReducedEmbeddingBase, db: d
 class ResumeMatchRequest(BaseModel):
     resume_text: str
     job_desc: Optional[str] = None
+    llm_model: str
 
 @app.post("/api/hybrid-match-resume/")
 async def hybrid_match_resume_endpoint(
@@ -158,7 +159,7 @@ async def hybrid_match_resume_endpoint(
     db: db_dependency
 ):
     try:
-        results = hybrid_match(request.resume_text, request.job_desc, db)
+        results = hybrid_match(request.resume_text, request.job_desc, request.llm_model, db)
         return results
     except Exception as e:
         import traceback
@@ -168,6 +169,7 @@ async def hybrid_match_resume_endpoint(
 class DownstreamMatchRequest(BaseModel):
     resume_text: str
     hybrid_matches: List[Dict[str, Any]]
+    llm_model: str
 
 @app.post("/api/downstream-match-resume/")
 async def downstream_match_resume(
@@ -175,7 +177,7 @@ async def downstream_match_resume(
     db: db_dependency
 ):
     try:
-        results = downstream_match(request.resume_text, request.hybrid_matches, db)
+        results = downstream_match(request.resume_text, request.hybrid_matches, request.llm_model, db)
         return results
     except Exception as e:
         import traceback
