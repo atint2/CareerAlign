@@ -162,7 +162,6 @@ if st.session_state.analysis_done and st.session_state.hybrid_data:
 
         if st.button(
             "Continue analysis with job postings",
-            disabled=st.session_state.downstream_done
         ):
             with st.spinner("Analyzing job postings…"):
                 try:
