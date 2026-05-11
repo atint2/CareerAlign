@@ -19,7 +19,7 @@ def get_skills_map(db_session, models):
     return SKILLS_CACHE
 
 def get_phrase_matcher(skills_map: dict) -> tuple:
-    """Build a spaCy PhraseMatcher from your DB skills. Cached after first build."""
+    """Build a spaCy PhraseMatcher from DB skills. Cached after first build."""
     global _nlp, _matcher
     if _matcher is None:
         _nlp = English()
@@ -29,7 +29,7 @@ def get_phrase_matcher(skills_map: dict) -> tuple:
     return _nlp, _matcher
 
 def _extract_phrase_matcher(text: str, skills_map: dict) -> set[str]:
-    """Use spaCy PhraseMatcher for efficient, token-aware skill extraction."""
+    """Use spaCy PhraseMatcher skill extraction"""
     nlp, matcher = get_phrase_matcher(skills_map)
     doc = nlp(text.lower())
     found = set()

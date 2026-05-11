@@ -38,6 +38,10 @@ async def lifespan(app: FastAPI):
     # Load heavy objects once at startup
     get_sbert_service()    # loads SBERT model into memory once
     load_vectorizer()      # loads .pkl into memory once
+    # Load spacy models and skill extractor
+    from backend.app.matcher.keyword_feedback import get_phrase_matcher, get_skills_map
+    skills_map = get_skills_map(SessionLocal(), models)  # loads skills from DB into memory once
+    get_phrase_matcher(skills_map)  # initializes the PhraseMatcher and skill extractor
 
     yield
 
@@ -176,4 +180,6 @@ async def downstream_match_resume(
         results = downstream_match(request.resume_text, request.hybrid_matches, request.llm_model, db)
         return results
     except Exception as e:
+        import traceback
+        traceback.print_exc() 
         raise HTTPException(status_code=500, detail=str(e))
